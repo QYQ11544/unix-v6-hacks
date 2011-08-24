@@ -1,0 +1,146 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>file</title>
+<script type="text/javascript">
+
+var data ;
+
+function object( o ) {
+  var f = object.f, i, len, n, prop ;
+  f.prototype = o ;
+  n = new f ;
+  for( i = 1, len = arguments.length; i < len; i++ )
+    for( prop in arguments[ i ] )
+      n[ prop ] = arguments[ i ][ prop ] ;
+    return n ;
+}
+object.f = function( ){ } ;
+
+var Filsys = {
+
+  get_s_isize: function( ) {
+    return ( "00" + data.charCodeAt( 513 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 512 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_fsize: function( ) {
+    return ( "00" + data.charCodeAt( 515 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 514 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_nfree: function( ) {
+    return ( "00" + data.charCodeAt( 517 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 516 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_free: function( i ) {
+    return ( "00" + data.charCodeAt( 519 + i * 2 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 518 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_ninode: function( ) {
+    return ( "00" + data.charCodeAt( 719 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 718 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_inode: function( i ) {
+    return ( "00" + data.charCodeAt( 721 + i * 2 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 720 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_flock: function( ) {
+    return ( "00" + data.charCodeAt( 920 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_ilock: function( ) {
+    return ( "00" + data.charCodeAt( 921 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_fmod: function( ) {
+    return ( "00" + data.charCodeAt( 922 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_ronly: function( ) {
+    return ( "00" + data.charCodeAt( 923 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+  get_s_time: function( i ) {
+    return ( "00" + data.charCodeAt( 925 + i * 2 ).toString( 16 ) ).substr( -2 ) +
+           ( "00" + data.charCodeAt( 924 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  },
+
+} ;
+
+
+window.addEventListener( 'dragover', function( event ) {
+  event.preventDefault( ) ;
+}, false ) ;
+
+window.addEventListener( 'drop', function( event ) {
+
+  event.preventDefault( ) ;
+  var file = event.dataTransfer.files[ 0 ] ;
+
+  result.innerHTML  = 'filename : ' + file.name + '<br>' ;
+  result.innerHTML += 'filetype : ' + file.type + '<br>' ;
+  result.innerHTML += 'filesize : ' + file.size + '<br>' ;
+  result.innerHTML += '<br>' ;
+
+  var reader = new FileReader( ) ;
+  reader.onload = function( ) {
+    data = new String( reader.result ) ;
+    var buffer = '' ;
+
+    var superblock = object( Filsys ) ;
+    buffer  = "s_isize : " + superblock.get_s_isize( ) + '<br>' ;
+    buffer += "s_fsize : " + superblock.get_s_fsize( ) + '<br>' ;
+    buffer += "s_nfree : " + superblock.get_s_nfree( ) + '<br>' ;
+    for( var i = 0; i < 100; i++ )
+      buffer += "s_free[" + i + "] : " + superblock.get_s_free( i ) + '<br>' ;
+    buffer += "s_ninode : " + superblock.get_s_ninode( ) + '<br>' ;
+    for( var i = 0; i < 100; i++ )
+      buffer += "s_inode[" + i + "] : " + superblock.get_s_inode( i ) + '<br>' ;
+    buffer += "s_flock : " + superblock.get_s_flock( ) + '<br>' ;
+    buffer += "s_ilock : " + superblock.get_s_ilock( ) + '<br>' ;
+    buffer += "s_fmod : " + superblock.get_s_fmod( ) + '<br>' ;
+    buffer += "s_ronly : " + superblock.get_s_ronly( ) + '<br>' ;
+    for( var i = 0; i < 2; i++ )
+      buffer += "s_time[" + i + "] : " + superblock.get_s_time( i ) + '<br>' ;
+
+    result.innerHTML += buffer ;
+
+/*
+    var buffer = new String( reader.result ) ;
+    for( var i = 0; i < buffer.length; i++ ) {
+      if( i % 16 == 0 )
+        o_buffer += ( "00000" + i.toString( 16 ) ).substr( -5 ) + ' : ' ;
+      o_buffer += ( "00" + buffer.charCodeAt( i ).toString( 16 ) ).substr( -2 ) + ' ' ;
+      if( i % 16 == 15 )
+        o_buffer += '<br>' ;
+    }
+    result.innerHTML += o_buffer ;
+*/
+
+  } ;
+  reader.onerror = function( e ) {
+    result.innerHTML += 'Error!<br>' ;
+    result.innerHTML += '<br>' ;
+    for( var key in reader.error ) {
+      result.innerHTML += key + '=' + reader.error[ key ] + '<br>' ;
+    }
+  };
+  reader.readAsBinaryString( file ) ;
+
+}, false ) ;
+
+function init( ) {
+  result = document.getElementById( "result" ) ;
+}
+
+</script>
+</head>
+<body onLoad="init( )">
+<div id="result"></div>
+</body>
+</html>

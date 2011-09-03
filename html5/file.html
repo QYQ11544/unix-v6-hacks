@@ -4,7 +4,13 @@
 <title>file</title>
 <script type="text/javascript">
 
-var data ;
+var bin_data ;
+var resultview ;
+var textview ;
+var inodeview ;
+var superblockview ;
+var binaryview ;
+var superblock ;
 
 function object( o ) {
   var f = object.f, i, len, n, prop ;
@@ -17,58 +23,548 @@ function object( o ) {
 }
 object.f = function( ){ } ;
 
+var BinData = {
+
+  data: null,
+
+  create: function( data ) {
+    this.data = new String( data ) ;
+    return this ;
+  },
+
+  byte: function( pos ) {
+    return this.data.charCodeAt( pos ) ;
+  },
+
+  byteAsHex: function( pos ) {
+    return this.byte( pos ).toString( 16 ) ;
+  },
+
+  byteAsHexF: function( pos ) {
+    return ( "00" + this.byteAsHex( pos ) ).substr( -2 ) ;
+  },
+
+  byteAsOct: function( pos ) {
+    return this.byte( pos ).toString( 8 ) ;
+  },
+
+  word: function( pos ) {
+    return ( this.byte( pos + 1 ) << 8 ) + this.byte( pos ) ;
+  },
+
+  wordAsHex: function( pos ) {
+    return this.word( pos ).toString( 16 ) ;
+  },
+
+  wordAsHexF: function( pos ) {
+    return ( "0000" + this.wordAsHex( pos ) ).substr( -4 ) ;
+  },
+
+  wordAsOct: function( pos ) {
+    return this.word( pos ).toString( 8 ) ;
+  }
+
+} ;
+
+function sprint( pos ) {
+  return ( "00" + data.charCodeAt( pos ).toString( 16 ) ).substr( -2 ) ;
+}
+
 var Filsys = {
 
-  get_s_isize: function( ) {
-    return ( "00" + data.charCodeAt( 513 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 512 ).toString( 16 ) ).substr( -2 ) ;
+  bin_data: null,
+
+  create: function( bin_data ) {
+    this.bin_data = bin_data ;
+    return this ;
   },
 
-  get_s_fsize: function( ) {
-    return ( "00" + data.charCodeAt( 515 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 514 ).toString( 16 ) ).substr( -2 ) ;
+  isize: function( ) {
+    return this.bin_data.word( 512 ) ;
   },
 
-  get_s_nfree: function( ) {
-    return ( "00" + data.charCodeAt( 517 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 516 ).toString( 16 ) ).substr( -2 ) ;
+  isizeF: function( ) {
+    return this.bin_data.wordAsHexF( 512 ) ;
   },
 
-  get_s_free: function( i ) {
-    return ( "00" + data.charCodeAt( 519 + i * 2 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 518 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  fsize: function( ) {
+    return this.bin_data.word( 514 ) ;
   },
 
-  get_s_ninode: function( ) {
-    return ( "00" + data.charCodeAt( 719 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 718 ).toString( 16 ) ).substr( -2 ) ;
+  fsizeF: function( ) {
+    return this.bin_data.wordAsHexF( 514 ) ;
   },
 
-  get_s_inode: function( i ) {
-    return ( "00" + data.charCodeAt( 721 + i * 2 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 720 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  nfree: function( ) {
+    return this.bin_data.word( 516 ) ;
   },
 
-  get_s_flock: function( ) {
-    return ( "00" + data.charCodeAt( 920 ).toString( 16 ) ).substr( -2 ) ;
+  nfreeF: function( ) {
+    return this.bin_data.wordAsHexF( 516 ) ;
   },
 
-  get_s_ilock: function( ) {
-    return ( "00" + data.charCodeAt( 921 ).toString( 16 ) ).substr( -2 ) ;
+  free: function( i ) {
+    return this.bin_data.word( 518 + i * 2 ) ;
   },
 
-  get_s_fmod: function( ) {
-    return ( "00" + data.charCodeAt( 922 ).toString( 16 ) ).substr( -2 ) ;
+  freeF: function( i ) {
+    return this.bin_data.wordAsHexF( 518 + i * 2 ) ;
   },
 
-  get_s_ronly: function( ) {
-    return ( "00" + data.charCodeAt( 923 ).toString( 16 ) ).substr( -2 ) ;
+  ninode: function( ) {
+    return this.bin_data.word( 718 ) ;
   },
 
-  get_s_time: function( i ) {
-    return ( "00" + data.charCodeAt( 925 + i * 2 ).toString( 16 ) ).substr( -2 ) +
-           ( "00" + data.charCodeAt( 924 + i * 2 ).toString( 16 ) ).substr( -2 ) ;
+  ninodeF: function( ) {
+    return this.bin_data.wordAsHexF( 718 ) ;
   },
+
+  inode: function( i ) {
+    return this.bin_data.word( 720 + i * 2 ) ;
+  },
+
+  inodeF: function( i ) {
+    return this.bin_data.wordAsHexF( 720 + i * 2 ) ;
+  },
+
+  flock: function( ) {
+    return this.bin_data.byte( 920 ) ;
+  },
+
+  flockF: function( ) {
+    return this.bin_data.byteAsHexF( 920 ) ;
+  },
+
+  ilock: function( ) {
+    return this.bin_data.byte( 921 ) ;
+  },
+
+  ilockF: function( ) {
+    return this.bin_data.byteAsHexF( 921 ) ;
+  },
+
+  fmod: function( ) {
+    return this.bin_data.byte( 922 ) ;
+  },
+
+  fmodF: function( ) {
+    return this.bin_data.byteAsHexF( 922 ) ;
+  },
+
+  ronly: function( ) {
+    return this.bin_data.byteAsHexF( 923 ) ;
+  },
+
+  ronlyF: function( ) {
+    return this.bin_data.byte( 923 ) ;
+  },
+
+  time: function( i ) {
+    return this.bin_data.word( 924 + i * 2 ) ;
+  },
+
+  timeF: function( i ) {
+    return this.bin_data.wordAsHexF( 924 + i * 2 ) ;
+  },
+
+  timeString: function( ) {
+    var d = new Date( ) ;
+    d.setTime( ( ( this.time( 0 ) << 16 ) + this.time( 1 ) ) * 1000 ) ;
+    return d.getMonth( ) + '/' + d.getDate( )    + '/' + d.getFullYear( ) + ' ' +
+           d.getHours( ) + ':' + d.getMinutes( ) + ':' + d.getSeconds( ) ;
+  },
+
+  string: function( ) {
+
+    var buffer = '' ;
+    buffer += "s_isize : " + this.isizeF( ) + "\n" ;
+    buffer += "s_fsize : " + this.fsizeF( ) + "\n" ;
+    buffer += "s_nfree : " + this.nfreeF( ) + "\n" ;
+    for( var i = 0; i < 100; i++ )
+      buffer += "s_free[" + i + "] : " + this.freeF( i ) + "\n" ;
+    buffer += "s_ninode   : " + this.ninodeF( ) + "\n" ;
+    for( var i = 0; i < 100; i++ )
+      buffer += "s_inode[" + i + "] : " + this.inodeF( i ) + "\n" ;
+    buffer += "s_flock : " + this.flockF( ) + "\n" ;
+    buffer += "s_ilock : " + this.ilockF( ) + "\n" ;
+    buffer += "s_fmod  : " + this.fmodF( ) + "\n" ;
+    buffer += "s_ronly : " + this.ronlyF( ) + "\n" ;
+    for( var i = 0; i < 2; i++ )
+      buffer += "s_time[" + i + "] : " + this.timeF( i ) + "\n" ;
+    buffer += "s_time  : " + this.timeString( ) + "\n" ;
+
+    return buffer ;
+
+  }
+
+} ;
+
+var Inode = {
+
+  i_number: 0,
+  bin_data: null,
+
+  create: function( i_number, bin_data ) {
+    this.i_number = i_number ;
+    this.bin_data = bin_data ;
+    return this ;
+  },
+
+  block_no: function( ) {
+    return parseInt( ( this.i_number + 31 ) / 16 ) ;
+  },
+
+  offset: function( ) {
+    return 32 * ( ( this.i_number + 31 ) % 16 ) ;
+  },
+
+  address: function( pos ) {
+    return ( this.block_no( ) * 512 ) + this.offset( ) + pos ;
+  },
+
+  mode: function( ) {
+    return this.bin_data.word( this.address( 0 ) ) ;
+  },
+
+  modeF: function( ) {
+    return this.bin_data.wordAsHexF( this.address( 0 ) ) ;
+  },
+
+  nlink: function( ) {
+    return this.bin_data.byte( this.address( 2 ) ) ;
+  },
+
+  nlinkF: function( ) {
+    return this.bin_data.byteAsHexF( this.address( 2 ) ) ;
+  },
+
+  uid: function( ) {
+    return this.bin_data.byte( this.address( 3 ) ) ;
+  },
+
+  uidF: function( ) {
+    return this.bin_data.byteAsHexF( this.address( 3 ) ) ;
+  },
+ 
+  gid: function( ) {
+    return this.bin_data.byte( this.address( 4 ) ) ;
+  },
+
+  gidF: function( ) {
+    return this.bin_data.byteAsHexF( this.address( 4 ) ) ;
+  },
+
+  size0: function( ) {
+    return this.bin_data.byte( this.address( 5 ) ) ;
+  },
+
+  size0F: function( ) {
+    return this.bin_data.byteAsHexF( this.address( 5 ) ) ;
+  },
+
+  size1: function( ) {
+    return this.bin_data.word( this.address( 6 ) ) ;
+  },
+
+  size1F: function( ) {
+    return this.bin_data.wordAsHexF( this.address( 6 ) ) ;
+  },
+
+  size: function( ) {
+    return ( this.size0( ) << 16 ) + this.size1( ) ;
+  },
+
+  addr: function( index ) {
+    return this.bin_data.word( this.address( 8 + index * 2 ) ) ;
+  },
+
+  addrF: function( index ) {
+    return this.bin_data.wordAsHexF( this.address( 8 + index * 2 ) ) ;
+  },
+
+  atime: function( index ) {
+    return this.bin_data.word( this.address( 24 + index * 2 ) ) ;
+  },
+
+  atimeF: function( index ) {
+    return this.bin_data.wordAsHexF( this.address( 24 + index * 2 ) ) ;
+  },
+
+  atimeString: function( ) {
+    var d = new Date( ) ;
+    d.setTime( ( ( this.atime( 0 ) << 16 ) + this.atime( 1 ) ) * 1000 ) ;
+    return d.getMonth( ) + '/' + d.getDate( )    + '/' + d.getFullYear( ) + ' ' +
+           d.getHours( ) + ':' + d.getMinutes( ) + ':' + d.getSeconds( ) ;
+  },
+
+  mtime: function( index ) {
+    return this.bin_data.word( this.address( 28 + index * 2 ) ) ;
+  },
+
+  mtimeF: function( index ) {
+    return this.bin_data.wordAsHexF( this.address( 28 + index * 2 ) ) ;
+  },
+
+  mtimeString: function( ) {
+    var d = new Date( ) ;
+    d.setTime( ( ( this.mtime( 0 ) << 16 ) + this.mtime( 1 ) ) * 1000 ) ;
+    return d.getMonth( ) + '/' + d.getDate( )    + '/' + d.getFullYear( ) + ' ' +
+           d.getHours( ) + ':' + d.getMinutes( ) + ':' + d.getSeconds( ) ;
+  },
+
+  is_IALLOC: function( ) {
+    return this.mode( ) & 32768 ;
+  },
+
+/*
+  is_IFMT: function( ) {
+    return this.mode( ) & 24576 ;
+  },
+
+  is_IFBLK: function( ) {
+    return this.mode( ) & 24576 ;
+  },
+*/
+  is_IFDIR: function( ) {
+    return this.mode( ) & 16384 ;
+  },
+
+  is_IFCHR: function( ) {
+    return this.mode( ) & 8192 ;
+  },
+
+  is_ILARG: function( ) {
+    return this.mode( ) & 4096 ;
+  },
+
+  is_ISUID: function( ) {
+    return this.mode( ) & 2048 ;
+  },
+
+  is_ISGID: function( ) {
+    return this.mode( ) & 1024 ;
+  },
+
+  is_ISVTX: function( ) {
+    return this.mode( ) & 512 ;
+  },
+
+  is_IREAD: function( ) {
+    return this.mode( ) & 256 ;
+  },
+
+  is_IWRITE: function( ) {
+    return this.mode( ) & 128 ;
+  },
+
+  is_IEXEC: function( ) {
+    return this.mode( ) & 64 ;
+  },
+
+  // TODO : validate pos
+  byte_data: function( pos ) {
+
+    var block_no = 0 ;
+
+    if( ! this.is_ILARG( ) ) {
+      block_no = this.addr( parseInt( pos / 512 ) ) ;
+    } else {
+      if( pos < 512 * 256 * 7 ) {
+        block_no = this.addr( parseInt( pos / ( 512 * 256 ) ) ) ;
+      } else {
+        block_no = this.addr( 7 ) ;
+        block_no = this.bin_data.word( block_no * 512 + parseInt( ( pos % ( 512 * 256 * 256 ) ) / ( 512 * 256 ) ) * 2 ) ;
+      }
+      block_no = this.bin_data.word( block_no * 512 + parseInt( ( pos % ( 512 * 256 ) ) / 512 ) * 2 ) ;
+    }
+
+    return this.bin_data.byte( block_no * 512 + pos % 512 ) ;
+
+  },
+
+  word_data: function( pos ) {
+    return ( this.byte_data( pos + 1 ) << 8 ) + this.byte_data( pos ) ;
+  },
+
+  string: function( ) {
+
+    var buffer = '' ;
+
+    buffer += 'inode No : ' + this.i_number.toString( 16 ) + "\n" ;
+    buffer += 'i_mode  : '  + this.modeF( ) + " -" ;
+    if( this.is_IALLOC( ) )
+      buffer += ' IALLOC' ;
+//  if( this.is_IFMT( ) )
+//    buffer += ' IFMT' ;
+//  if( this.is_IFBLK( ) )
+//    buffer += ' IFBLK' ;
+    if( this.is_IFDIR( ) )
+      buffer += ' IFDIR' ;
+    if( this.is_IFCHR( ) )
+      buffer += ' IFCHR' ;
+    if( this.is_ILARG( ) )
+      buffer += ' ILARG' ;
+    if( this.is_ISUID( ) )
+      buffer += ' ISUID' ;
+    if( this.is_ISGID( ) )
+      buffer += ' ISGID' ;
+    if( this.is_ISVTX( ) )
+      buffer += ' ISVTX' ;
+    if( this.is_IREAD( ) )
+      buffer += ' IREAD' ;
+    if( this.is_IWRITE( ) )
+      buffer += ' IWRITE' ;
+    if( this.is_IEXEC( ) )
+      buffer += ' IEXEC' ;
+    buffer += "\n" ;
+
+    buffer += 'i_nlink : ' + this.nlinkF( ) + "\n" ;
+    buffer += 'i_uid   : ' + this.uidF( ) + "\n" ;
+    buffer += 'i_gid   : ' + this.gidF( ) + "\n" ;
+    buffer += 'i_size0 : ' + this.size0F( ) + "\n" ;
+    buffer += 'i_size1 : ' + this.size1F( ) + "\n" ;
+    buffer += 'i_size  : ' + this.size( ) + "\n" ;
+    for( var i = 0; i < 8; i++ )
+      buffer += 'i_addr[' + i + '] : ' + this.addrF( i ) + "\n" ;
+    for( var i = 0; i < 2; i++ )
+      buffer += 'i_atime[' + i + '] : ' + this.atimeF( i ) + "\n" ;
+    buffer += 'i_atime : ' + this.atimeString( ) + "\n" ;
+    for( var i = 0; i < 2; i++ )
+      buffer += 'i_mtime[' + i + '] : ' + this.mtimeF( i ) + "\n" ;
+    buffer += 'i_mtime : ' + this.mtimeString( ) + "\n" ;
+
+    return buffer ;
+
+  }
+
+} ;
+
+var Directory = {
+ 
+  inocd: null,
+
+  create: function( inode ) {
+    this.inode = inode ;
+    return this ;
+  },
+
+  size: function( ) {
+    return parseInt( this.inode.size( ) / 16 ) ;
+  },
+
+  entry: function( index ) {
+
+    var i_number = this.inode.word_data( index * 16 ) ;
+
+    var name = '' ;
+    for( var i = 0; i < 14; i++ ) {
+      var tmp = this.inode.byte_data( index * 16 + 2 + i ) ;
+      if( tmp == 0 ) {
+        break ;
+      }
+      var str = String.fromCharCode( tmp ) ;
+      name += str ;
+    }
+
+    if( i_number > 0 ) {
+      var ino = get_inode( i_number ) ;
+      if( ino.is_IFDIR( ) && ! ino.is_IFCHR( ) )
+        name += '/' ;
+    }
+
+    var entry = object( DirectoryEntry ).create( i_number, name ) ;
+    return entry ;
+
+  },
+
+  string: function( ) {
+    var buffer = '' ;
+    for( var i = 0; i < this.size( ); i++ ) {
+      var entry = this.entry( i ) ;
+      if( entry.empty( ) || entry.is_relative( ) )
+        continue ;
+
+      buffer += entry.i_numberF( ) + ' : ' + entry.name + "\n" ;
+    }
+    return buffer ;
+  }
+
+} ;
+
+var DirectoryEntry = {
+
+  i_number: null,
+  name: null,
+
+  create: function( i_number, name ) {
+    this.i_number = i_number ;
+    this.name = name ;
+    return this ;
+  },
+
+  empty: function( ) {
+    return ( ! this.i_number ) ? true : false ;
+  },
+
+  is_relative: function( ) {
+    return ( this.name == './' || this.name == '../' ) ? true : false ;
+  },
+
+  // it's not appropriate the logic here.
+  i_numberF: function( ) {
+    return ( "0000" + this.i_number.toString( 16 ) ).substr( -4 ) ;
+  }
+
+} ;
+
+var File = {
+
+  inode: null,
+
+  create: function( inode ) {
+    this.inode = inode ;
+    return this ;
+  },
+
+  size: function( ) {
+    return this.inode.size( ) ;
+  },
+
+  byte_data: function( pos ) {
+    return this.inode.byte_data( pos ) ;
+  },
+
+  // it's not appropriate to edit logic here.
+  byte_dataAsHex: function( pos ) {
+    return this.byte_data( pos ).toString( 16 ) ;
+  },
+
+  // it's not appropriate to edit logic here.
+  byte_dataAsHexF: function( pos ) {
+    return ( "00" + this.byte_dataAsHex( pos ) ).substr( -2 ) ;
+  },
+
+  binary_data: function( ) {
+    var buffer = '' ;
+    for( var i = 0; i < this.size( ); i++ ) {
+      if( i % 16 == 0 )
+        buffer += ( "00000" + i.toString( 16 ) ).substr( -5 ) ;
+      buffer += ' ' + this.byte_dataAsHexF( i ) ;
+      if( i % 16 == 15 )
+        buffer += "\n" ;
+    }
+    if( i % 16 != 0 )
+      buffer += "\n" ;
+    return buffer ;
+  },
+
+  string: function( ) {
+    var buffer = '' ;
+    for( var i = 0; i < this.size( ); i++ ) {
+      buffer += String.fromCharCode( this.byte_data( i ) ) ;
+    }
+    return buffer ;
+  }
 
 } ;
 
@@ -76,71 +572,149 @@ var Filsys = {
 window.addEventListener( 'dragover', function( event ) {
   event.preventDefault( ) ;
 }, false ) ;
-
+ 
 window.addEventListener( 'drop', function( event ) {
 
   event.preventDefault( ) ;
   var file = event.dataTransfer.files[ 0 ] ;
 
-  result.innerHTML  = 'filename : ' + file.name + '<br>' ;
-  result.innerHTML += 'filetype : ' + file.type + '<br>' ;
-  result.innerHTML += 'filesize : ' + file.size + '<br>' ;
-  result.innerHTML += '<br>' ;
-
   var reader = new FileReader( ) ;
   reader.onload = function( ) {
-    data = new String( reader.result ) ;
-    var buffer = '' ;
 
-    var superblock = object( Filsys ) ;
-    buffer  = "s_isize : " + superblock.get_s_isize( ) + '<br>' ;
-    buffer += "s_fsize : " + superblock.get_s_fsize( ) + '<br>' ;
-    buffer += "s_nfree : " + superblock.get_s_nfree( ) + '<br>' ;
-    for( var i = 0; i < 100; i++ )
-      buffer += "s_free[" + i + "] : " + superblock.get_s_free( i ) + '<br>' ;
-    buffer += "s_ninode : " + superblock.get_s_ninode( ) + '<br>' ;
-    for( var i = 0; i < 100; i++ )
-      buffer += "s_inode[" + i + "] : " + superblock.get_s_inode( i ) + '<br>' ;
-    buffer += "s_flock : " + superblock.get_s_flock( ) + '<br>' ;
-    buffer += "s_ilock : " + superblock.get_s_ilock( ) + '<br>' ;
-    buffer += "s_fmod : " + superblock.get_s_fmod( ) + '<br>' ;
-    buffer += "s_ronly : " + superblock.get_s_ronly( ) + '<br>' ;
-    for( var i = 0; i < 2; i++ )
-      buffer += "s_time[" + i + "] : " + superblock.get_s_time( i ) + '<br>' ;
+    bin_data = object( BinData ).create( reader.result ) ;
+    superblock = object( Filsys ).create( bin_data ) ;
+    superblockview.innerHTML = superblock.string( ) ;
 
-    result.innerHTML += buffer ;
+    var ul = document.createElement( 'ul' ) ;
+    var li = document.createElement( 'li' ) ;
+    var a  = document.createElement( 'a' ) ;
+    a.href = "javascript:void( 0 )" ;
+    a.setAttribute( "onclick", "viewFile( 1 ); foldDirectory( this.parentElement, 1 )" ) ;
+    a.innerHTML = "/" ;
 
-/*
-    var buffer = new String( reader.result ) ;
-    for( var i = 0; i < buffer.length; i++ ) {
-      if( i % 16 == 0 )
-        o_buffer += ( "00000" + i.toString( 16 ) ).substr( -5 ) + ' : ' ;
-      o_buffer += ( "00" + buffer.charCodeAt( i ).toString( 16 ) ).substr( -2 ) + ' ' ;
-      if( i % 16 == 15 )
-        o_buffer += '<br>' ;
-    }
-    result.innerHTML += o_buffer ;
-*/
+    li.appendChild( a ) ;
+    ul.appendChild( li ) ;
+    resultview.appendChild( ul ) ;
 
   } ;
   reader.onerror = function( e ) {
-    result.innerHTML += 'Error!<br>' ;
-    result.innerHTML += '<br>' ;
+    resultview.innerHTML += 'Error!<br>' ;
+    resultview.innerHTML += '<br>' ;
     for( var key in reader.error ) {
-      result.innerHTML += key + '=' + reader.error[ key ] + '<br>' ;
+      resultview.innerHTML += key + '=' + reader.error[ key ] + '<br>' ;
     }
   };
   reader.readAsBinaryString( file ) ;
-
+ 
 }, false ) ;
 
-function init( ) {
-  result = document.getElementById( "result" ) ;
+function get_inode( i_number ) {
+  return object( Inode ).create( i_number, bin_data ) ;
 }
 
-</script>
-</head>
+function init( ) {
+
+  resultview     = document.getElementById( "resultview" ) ;
+  textview       = document.getElementById( "textview" ) ;
+  binaryview     = document.getElementById( "binaryview" ) ;
+  inodeview      = document.getElementById( "inodeview" ) ;
+  superblockview = document.getElementById( "superblockview" ) ;
+
+}
+
+function viewFile( i_number ) {
+
+  var inode = get_inode( i_number ) ;
+
+  var e = ( inode.is_IFDIR( ) && ! inode.is_IFCHR( ) ) ? object( Directory ).create( inode ) : object( File ).create( inode ) ;
+
+  textview.innerHTML = e.string( ) ;
+
+  inodeview.innerHTML = inode.string( ) ;
+
+  var file = object( File ).create( inode ) ;
+  binaryview.innerHTML = file.binary_data( ) ;
+
+}
+
+function foldDirectory( parent, i_number ) {
+
+  var ele = parent.firstChild.nextSibling ;
+
+  if( ele ) {
+
+    while( ele ) {
+      parent.removeChild( ele ) ;
+      ele = ele.nextSibling ;
+    }
+
+  } else {
+
+    var inode = get_inode( i_number ) ;
+
+    if( ! inode.is_IFDIR( ) || inode.is_IFCHR( ) )
+      return ;
+
+    var dir = object( Directory ).create( inode ) ;
+    var ul = document.createElement( 'ul' ) ;
+    var has_children = false ;
+
+    for( var i = 0; i < dir.size( ); i++ ) {
+
+      var e = dir.entry( i ) ;
+
+      if( e.empty( ) || e.is_relative( ) )
+        continue ;
+
+      var li = document.createElement( 'li' ) ;
+      var a  = document.createElement( 'a' ) ;
+      a.href = "javascript:void( 0 )" ;
+      a.setAttribute( "onclick",
+                      "viewFile( " + e.i_number + " ); foldDirectory( this.parentElement, " + e.i_number + " )" ) ;
+      a.innerHTML = e.name ;
+
+      li.appendChild( a ) ;
+      ul.appendChild( li ) ;
+      has_children = true ;
+
+    }
+
+    if( has_children )
+      parent.appendChild( ul ) ;
+
+  }
+
+}
+
+</script> 
+</head> 
 <body onLoad="init( )">
-<div id="result"></div>
-</body>
+<table>
+<tr>
+<td valign="top">
+<p>
+<div id="resultview"></div> 
+</p>
+</td>
+<td valign="top">
+<p>
+<textarea id="superblockview" cols="100" rows="20">
+</textarea>
+</p>
+<p>
+<textarea id="inodeview" cols="100" rows="20">
+</textarea>
+</p>
+<p>
+<textarea id="textview" cols="100" rows="50">
+</textarea>
+</p>
+<p>
+<textarea id="binaryview" cols="100" rows="50">
+</textarea>
+</p>
+</td>
+</tr>
+</table>
+</body> 
 </html>

@@ -35,7 +35,7 @@ var Inode = {
   },
 
   set_mode: function( value ) {
-    this.bin_data.set_wordt( this.address( 0 ), value ) ;
+    this.bin_data.set_word( this.address( 0 ), value ) ;
   },
 
   nlink: function( ) {

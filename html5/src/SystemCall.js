@@ -1,3 +1,6 @@
+var wait_flag = false ;
+var fork_flag = false ;
+
 var SystemCall = {
 
    0 : { name : 'indir',   argc : 1,
@@ -15,11 +18,16 @@ var SystemCall = {
            }
            SystemCall[ sys_op & 0377 ].run( pdp11, proc, code, ahead ) ;
            trace_buffer += '}' ;
-           pdp11.regs[ 7 ].set( backup ) ;
+           if( ( sys_op & 0377 ) != 11 )
+             pdp11.regs[ 7 ].set( backup ) ;
        } },
    1 : { name : 'exit',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
            proc.exit_flag = true ;
+window.alert( 'exit ' + current_name ) ;
+           pdp11.regs[0].set( 1 ) ;
+           pdp11.ps.c = false ;
+
        } },
    2 : { name : 'fork',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
@@ -31,6 +39,9 @@ var SystemCall = {
            ret_stack.push( proc.get_word( pdp11.regs[6].get( ) + 2 ) ) ;
            pdp11.nextStep( ) ;
            pdp11.regs[0].set( 1 ) ; // parent
+
+           fork_flag = true ;
+
        } },
    3 : { name : 'read',    argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -53,13 +64,18 @@ var SystemCall = {
              }
            } else {
              var f = proc.files[ pdp11.regs[ 0 ].get( ) ] ;
+if( current_name == '/lib/c1' )
+  window.alert( f.inode.i_number + ' ' + f.inode.size( ) ) ;
              if( opr2 > f.inode.size( ) - f.offsetr )
                opr2 = f.inode.size( ) - f.offsetr ;
              var file = object( File ).create( f.inode ) ;
+             var buffer = '' ;
              for( var i = 0; i < opr2; i++ ) {
                proc.set_byte( opr1++, file.byte_data( f.offsetr++ ) ) ;
+               buffer += String.fromCharCode( file.byte_data( f.offsetr - 1 ) ) ;
                count++ ;
              }
+             window.alert( 'read:' + buffer ) ;
            }
            pdp11.regs[ 0 ].set( count ) ;
        } },
@@ -112,6 +128,7 @@ var SystemCall = {
            trace_buffer += ' r0:' + sprintf( 16, pdp11.regs[ 0 ].get( ), 5 ) ;
            trace_buffer += ')' ;
            pdp11.regs[ 0 ].set( count ) ;
+//           window.alert( 'write ' + current_name + ' ' + result ) ;
        } },
    5 : { name : 'open',    argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -126,24 +143,37 @@ var SystemCall = {
            }
            var inode = Kernel.namei( path ) ;
            if( ! inode ) {
+window.alert( 'not found open file. ' + path ) ;
              pdp11.regs[ 0 ].set( 0 ) ;
              pdp11.ps.c = true ;
              return ;
            }
            var num = Kernel.falloc( proc, inode ) ;
            pdp11.regs[ 0 ].set( num ) ;
+window.alert( path + ' ' + num ) ;
        } },
    6 : { name : 'close',   argc : 0,
          run : function( pdp11, proc, code, ahead ) {
-/*
-           var f = proc.files[ pdp11.regs[ 0 ].value ] ;
+           var f = proc.files[ pdp11.regs[ 0 ].get( ) ] ;
            if( f ) {
-             proc.filse[ pdp11.regs[ 0 ].value ] = null ;
+             proc.files[ pdp11.regs[ 0 ].get( ) ] = null ;
            }
-*/
        } },
    7 : { name : 'wait',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
+
+           if( ! fork_flag ) {
+             pdp11.ps.c = false ;
+             pdp11.regs[ 1 ].set( 0 ) ; // of wait
+             pdp11.regs[ 0 ].set( 1 ) ; // of wait
+             return ;
+           }
+
+           var backup = new Array( ) ;
+           for( var i = 0; i < proc.uint8_array.length; i++ )
+             backup.push( proc.uint8_array[ i ] ) ;
+           proc_stack.push( backup ) ;
+
            var tmp_ps = pdp11.ps ;
            var tmp_pc = pdp11.regs[ 7 ].get( ) ;
            var tmp_sp = pdp11.regs[ 6 ].get( ) ;
@@ -157,9 +187,15 @@ var SystemCall = {
            ps_stack.push( tmp_ps ) ;
            pc_stack.push( tmp_pc ) ;
            sp_stack.push( tmp_sp ) ;
-           r5_stack.push( tmp_r5 - 2 ) ; // ?
+           r5_stack.push( tmp_r5 ) ; // ?
            ret_stack.push( tmp_ret ) ;
+
            pdp11.regs[0].set( 0 ) ; // child
+window.alert( 'wait ' + tmp_pc ) ;
+window.alert( proc.get_word( 0x3854 ).toString( 16 ) ) ;
+
+           wait_flag = true ;
+
        } },
    8 : { name : 'creat',   argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -177,8 +213,41 @@ var SystemCall = {
              inode = Kernel.maknod( ) ;
            var num = Kernel.falloc( proc, inode ) ;
            pdp11.regs[ 0 ].set( num ) ;
+           pdp11.ps.c = false ;
+window.alert( 'creat ' + path + ' ' + num ) ;
        } },
-   9 : { name : 'link',    argc : 2 },
+   9 : { name : 'link',    argc : 2,
+         run : function( pdp11, proc, code, ahead ) {
+           pdp11.nextStep( ) ;
+           var opr1 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           pdp11.nextStep( ) ;
+           var opr2 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           var path = '' ;
+           while( proc.get_byte( opr1 ) ) {
+             path += String.fromCharCode( proc.get_byte( opr1 ) ) ;
+             opr1++ ;
+           }
+           var inode = Kernel.namei( path ) ;
+           if( ! inode ) {
+window.alert( 'not found ' + path ) ;
+             pdp11.ps.c = true ;
+             return ;
+           }
+
+           var path2 = '' ;
+           while( proc.get_byte( opr2 ) ) {
+             path2 += String.fromCharCode( proc.get_byte( opr2 ) ) ;
+             opr2++ ;
+           }
+           var inode2 = Kernel.namei( path2 ) ;
+           if( inode2 ) {
+window.alert( 'already exists ' + path2 ) ;
+             pdp11.ps.c = true ;
+             return ;
+           }
+           Kernel.wdir( inode ) ;
+           pdp11.ps.c = false ;
+       } },
   10 : { name : 'unlink',  argc : 1,
          run : function( pdp11, proc, code, ahead ) {
            pdp11.nextStep( ) ;
@@ -194,6 +263,7 @@ var SystemCall = {
              return ;
            }
            u_dir.remove_entry( inode.i_number ) ;
+           pdp11.ps.c = false ;
        } },
   11 : { name : 'exec',    argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -234,28 +304,49 @@ var SystemCall = {
              return ;
 
            var old_current_name = current_name ;
-           current_name = u_name ;
+//           current_name = u_name ;
+           current_name = path ;
            var old_argview_value = argview.value ;
-           argview.value = args ;
-
+           argview.value = args.trim( ) ;
+window.alert( current_name ) ;
+window.alert( "\"" + argview.value + "\"" ) ;
 //           runview.value   += proc.result ;
            traceview.value += trace_buffer ;
            proc.result = '' ;
-           trace_buffeer = '' ;
+           trace_buffer = '' ;
            var exe = object( Exe ).create( file ) ;
-           var proc = object( Proc ).create( ) ;
-           proc.load( exe ) ;
-           var result = proc.run( ) ;
+
+           if( ! wait_flag ) {
+             proc.load( exe ) ;
+             proc.init( ) ;
+             return ;
+           }
+
+           var proc2 = object( Proc ).create( ) ;
+           proc2.load( exe ) ;
+           var result = proc2.run( ) ;
 //           runview.innerHTML   += result.result ;
 //           traceview.innerHTML += result.trace ;
 
            current_name = old_current_name ;
            argview.value = old_argview_value ;
-           pdp11.ps              = ps_stack.pop( ) ;
+           pdp11.ps = ps_stack.pop( ) ;
            pdp11.regs[ 7 ].set( pc_stack.pop( ) ) ;
            pdp11.regs[ 6 ].set( sp_stack.pop( ) ) ;
            pdp11.regs[ 5 ].set( r5_stack.pop( ) ) ;
-           pdp11.regs[ 0 ].set( 1 ) ; // ?
+//           pdp11.regs[ 1 ].set( pdp11.regs[ 0 ].get( ) << 8 ) ; // of wait
+           pdp11.regs[ 1 ].set( 0 ) ; // of wait
+           pdp11.regs[ 0 ].set( 1 ) ; // of wait
+
+           var backup = proc_stack.pop( ) ;
+           for( var i = 0; i < backup.length; i++ )
+             proc.uint8_array[ i ] = backup[ i ] ;
+           proc.set_word( pdp11.regs[ 6 ].get( ), 1 ) ; // temporary
+
+window.alert( 'exec_end ' + pdp11.regs[ 7 ].get( ).toString( 16 ) ) ;
+
+           wait_flag = false ;
+           fork_flag = false ;
 
        } },
   12 : { name : 'chdir',   argc : 1 },
@@ -301,8 +392,10 @@ var SystemCall = {
              opr1++ ;
            }
            var inode = Kernel.namei( path ) ;
-           if( ! inode )
+           if( ! inode ) {
+             pdp11.ps.c = true ;
              return ;
+           }
            proc.set_word( opr2, 0 ) ; // dev : temporary
            opr2 += 2 ;
            proc.set_word( opr2, inode.i_number ) ;
@@ -365,7 +458,10 @@ var SystemCall = {
 
            }
        } },
-  20 : { name : 'getpid',  argc : 0 },
+  20 : { name : 'getpid',  argc : 0,
+         run : function( pdp11, proc, code, ahead ) {
+         // not implemented yet.
+       } },
   21 : { name : 'mount',   argc : 3 },
   22 : { name : 'unmount', argc : 1 },
   23 : { name : 'setuid',  argc : 0 },

@@ -250,7 +250,7 @@ var Disassembler = {
     var padding = 0 ;
     if( this.exe.header.magic_number( ) == 0410 ) {
       padding = 0x10 ;
-      while( tmp != 0x2000 ) {
+      while( tmp % 0x2000 == 0 ) {
         padding++ ;
         tmp++ ;
       }

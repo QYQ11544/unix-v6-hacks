@@ -9,6 +9,10 @@
  */
 function sprintf( type, num, figure ) {
 
+  if( num == null ) {
+    window.alert( 'error:srpintf. ' + type + ', ' + num + ', ' + figure ) ;
+  }
+
   var base = '' ;
   var prefix = ''
   var minus = '' ;
@@ -26,7 +30,10 @@ function sprintf( type, num, figure ) {
   for( var i = 0; i < figure; i++ )
     base += '0' ;
 
-  return minus + prefix + ( base + num.toString( type ) ).substr( -1 * figure ) ;
+  if( num != null )
+    return minus + prefix + ( base + num.toString( type ) ).substr( -1 * figure ) ;
+
+  return minus + prefix ;
 
 }
 

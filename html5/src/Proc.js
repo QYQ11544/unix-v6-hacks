@@ -14,6 +14,7 @@ var Proc = {
   stack_address: 0,
   exit_flag: false,
   files: null,
+  step: 0,
 
   create: function( ) {
     this.files = new Array( ) ;
@@ -106,7 +107,8 @@ var Proc = {
   },
 
   get_word: function( pos ) {
-    return this.uint16_array[ pos >> 1 ] ;
+//    return this.uint16_array[ pos >> 1 ] ;
+    return this.int16_array[ pos >> 1 ] ;
   },
 
   set_byte: function( pos, value ) {
@@ -114,7 +116,8 @@ var Proc = {
   },
 
   set_word: function( pos, value ) {
-    this.uint16_array[ pos >> 1 ] = value ;
+//    this.uint16_array[ pos >> 1 ] = value ;
+    this.int16_array[ pos >> 1 ] = value ;
   },
 
   push: function( word ) {
@@ -126,6 +129,73 @@ var Proc = {
     var word = this.get_word( pdp11.regs[ 6 ].get( ) ) ;
     pdp11.regs[ 6 ].increment( ) ;
     return word ;
+  },
+
+  // dupllicated
+  init: function( ) {
+
+    this.files = new Array( ) ;
+    // not right logic yet.
+    var inode = get_inode( 0 ) ;
+    this.files.push( object( ProcFile ).create( inode ) ) ; // stdin
+    this.files.push( object( ProcFile ).create( inode ) ) ; // stdout
+    this.files.push( object( ProcFile ).create( inode ) ) ; // stderr
+
+    var args_values = new Array( ) ;
+    if( argview.value != '' )
+      var args_values = argview.value.split( ' ' ) ;
+    var args = new Array( ) ;
+    args.push( current_name ) ;
+    for( var i = 0; i < args_values.length; i++ ) {
+      args.push( args_values[ i ] ) ;
+    }
+    args = args.reverse( ) ;
+
+    var all_length = 0 ;
+
+    var arg_lengthes = new Array( ) ;
+    for( i = 0; i < args.length; i++ ) {
+      var length = args[ i ].length + 1 ;
+      if( length & 1 )
+        length++ ;
+      arg_lengthes.push( length ) ;
+      all_length += length ;
+    }
+
+    pdp11.regs[0].set( 0 ) ;
+    pdp11.regs[1].set( 0 ) ;
+    pdp11.regs[2].set( 0 ) ;
+    pdp11.regs[3].set( 0 ) ;
+    pdp11.regs[4].set( 0 ) ;
+    pdp11.regs[5].set( 0 ) ;
+    pdp11.regs[6].set( this.stack_begin_address( ) - all_length - 2 * args.length - 4 ) ;
+    pdp11.regs[7].set( 0 ) ;
+
+    this.pop( ) ;
+    for( var i = 0; i < args.length; i++ )
+      this.pop( ) ;
+    this.pop( ) ;
+    this.push( -1 ) ;
+    var addr = this.stack_begin_address( ) ;
+    for( var i = 0; i < args.length; i++ ) {
+      addr -= arg_lengthes[ i ] ;
+      this.push( addr ) ;
+    }
+    this.push( args.length ) ;
+
+    var addr = this.stack_begin_address( ) ;
+    for( var i = 0 ; i < args.length; i++ ) {
+      addr -= arg_lengthes[ i ] ;
+      for( var j = 0 ; j < arg_lengthes[ i ]; j++ ) {
+        var val = args[ i ].length > j ? args[ i ].charCodeAt( j ) : 0 ;
+        this.set_byte( addr + j, val ) ;
+      }
+    }
+
+    this.exit_flag = false ;
+
+    this.step = 0 ;
+
   },
 
   run: function( ) {
@@ -181,13 +251,12 @@ var Proc = {
       }
     }
 
-    var buffer = '' ;
     this.exit_flag = false ;
 
-    var step = 0 ;
+    this.step = 0 ;
 
-//    while( ! this.exit_flag && pdp11.regs[7].value < this.stack_begin_address( ) ) {
-    while( ! this.exit_flag && pdp11.regs[7].get( ) < this.text_end_address( ) ) {
+//    while( ! this.exit_flag && pdp11.regs[7].get( ) < this.text_end_address( ) ) {
+    while( ! this.exit_flag && pdp11.regs[7].get( ) < this.stack_begin_address( ) ) {
 
       var code = this.get_word( pdp11.regs[7].get( ) ) ;
       var ahead = new Array( ) ;
@@ -205,25 +274,29 @@ var Proc = {
           break ;
         }
       }
+      trace_buffer += current_name + ' : ' ;
       trace_buffer += pdp11.string( this ) ;
       trace_buffer += result.op + ' ' ;
 
       console.log( result.op + ' pc : ' + pdp11.regs[ 7 ].get( ).toString( 16 ) ) ;
       result.run( pdp11, this, code, ahead ) ;
 
-      buffer += result.op + "\n" ;
-      buffer += pdp11.string( this ) ;
       pdp11.nextStep( ) ;
+/*
       for( var key in this.symbols ) {
         if( this.symbols[ key ] == pdp11.regs[ 7 ].get( ) )
           buffer += key + "\n" ;
       }
+*/
 
       trace_buffer += "\n" ;
 
-      step++ ;
-      if( step > 5000 )
-        break ;
+      this.step++ ;
+//      if( this.step > 300000 )
+//        break ;
+
+//      if( current_name == '/lib/as2' && this.step > 10000 )
+//        break ;
 
     }
 

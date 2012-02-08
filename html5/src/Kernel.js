@@ -46,6 +46,13 @@ var Kernel = {
   },
 
   falloc: function( proc, inode ) {
+    for( var i = 0; i < proc.files.length; i++ ) {
+      if( ! proc.files[ i ] ) {
+        proc.files[ i ] = object( ProcFile ).create( inode ) ;
+        return i ;
+      }
+    }
+
     proc.files.push( object( ProcFile ).create( inode ) ) ;
     return proc.files.length - 1 ;
   },

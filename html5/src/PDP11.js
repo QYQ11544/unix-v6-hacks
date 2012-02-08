@@ -32,17 +32,17 @@ var PDP11 = {
     var buffer = '' ;
     buffer += this.ps.string( ) + ' ' ;
     for( var i = 0; i < 6; i++ ) {
-      buffer += 'r' + i + ':' + sprintf( 16, this.regs[ i ].get( ), 4 ) + ', ' ;
+      buffer += 'r' + i + ':' + sprintf( 16, this.regs[ i ].get( ), 5 ) + ', ' ;
     }
-    buffer += 'r6:' + sprintf( 16, this.regs[ 6 ].get( ), 4 ) + ' ' ;
+    buffer += 'r6:' + sprintf( 16, this.regs[ 6 ].get( ), 5 ) + ' ' ;
     buffer += '{' ;
     for( var i = 0; i < 8; i += 2 ) {
       if( i != 0 )
         buffer += ', ' ;
-      buffer += sprintf( 16, proc.get_word( this.regs[ 6 ].get( ) + i ), 4 ) ;
+      buffer += sprintf( 16, proc.get_word( this.regs[ 6 ].get( ) + i ), 5 ) ;
     }
     buffer += '}, ' ;
-    buffer += 'r7:' + sprintf( 16, this.regs[ 7 ].get( ), 4 ) + ' ' ;
+    buffer += 'r7:' + sprintf( 16, this.regs[ 7 ].get( ), 5 ) + ' ' ;
 
     return buffer ;
   }

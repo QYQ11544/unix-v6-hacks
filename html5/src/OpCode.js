@@ -118,6 +118,11 @@ var OpCode = [
       pdp11.regs[ reg + 1 ].set( val & 0xffff ) ;
 
       pdp11.setFlag( pdp11.regs[ reg ].get( ) ) ;
+      if( val == 0 ) {
+        pdp11.ps.z = true ;
+      } else {
+        pdp11.ps.z = false ;
+      }
       pdp11.ps.c = c ;
   } },
   { judge : 0177000, value : 0074000, op : 'xor',   type : OpType.I_ONEHALF,
@@ -142,8 +147,27 @@ var OpCode = [
       }
       pdp11.setFlag( reg.get( ) ) ;
   } },
-  { judge : 0177700, value : 0000300, op : 'swab',  type : OpType.I_SINGLE },
-  { judge : 0177700, value : 0100300, op : 'bpl',   type : OpType.I_SINGLE },
+  { judge : 0177700, value : 0000300, op : 'swab',  type : OpType.I_SINGLE,
+    run : function( pdp11, proc, code, ahead ) {
+      var des = code & 077 ;
+      var val ;
+      if( ! ( des & 070 ) ) {
+        val = pdp11.regs[ des & 07 ].get( ) ;
+        val = ( ( val & 0xff ) << 8 ) | ( ( val & 0xff00 ) >> 8 ) ;
+        pdp11.regs[ des & 07 ].set( val ) ;
+      } else {
+        var addr = Processor.getAddr( des, pdp11, proc, ahead, Processor.WORD ) ;
+        val = proc.get_word( addr ) ;
+        val = ( ( val & 0xff ) << 8 ) | ( ( val & 0xff00 ) >> 8 ) ;
+        proc.set_word( addr, val ) ;
+      }
+      pdp11.ps.n = val & 0x0100 ? true : false ;
+      pdp11.ps.z = val ? false : true ;
+      pdp11.ps.v = false ;
+      pdp11.ps.c = false ;
+
+  } },
+//  { judge : 0177700, value : 0100300, op : 'bpl',   type : OpType.I_SINGLE },
   { judge : 0177700, value : 0005000, op : 'clr',   type : OpType.I_SINGLE,
     run : function( pdp11, proc, code, ahead ) {
       OpHandler.clr( pdp11, proc, code, ahead, Processor.WORD ) ;
@@ -276,12 +300,12 @@ var OpCode = [
   } },
   { judge : 0177400, value : 0003000, op : 'bgt',   type : OpType.I_BRANCH,
     run : function( pdp11, proc, code, ahead ) {
-      if( ! ( pdp11.ps.z | ( pdp11.ps.n ^ pdp11.ps.v ) ) )
+      if( ! ( pdp11.ps.z || ( pdp11.ps.n ^ pdp11.ps.v ) ) )
         OpHandler.br( pdp11, proc, code, ahead, Processor.WORD ) ;
   } },
   { judge : 0177400, value : 0003400, op : 'ble',   type : OpType.I_BRANCH,
     run : function( pdp11, proc, code, ahead ) {
-      if( ( pdp11.ps.z | ( pdp11.ps.n ^ pdp11.ps.v ) ) )
+      if( ( pdp11.ps.z || ( pdp11.ps.n ^ pdp11.ps.v ) ) )
         OpHandler.br( pdp11, proc, code, ahead, Processor.WORD ) ;
   } },
   { judge : 0177400, value : 0100000, op : 'bpl',   type : OpType.I_BRANCH,
@@ -296,7 +320,7 @@ var OpCode = [
   } },
   { judge : 0177400, value : 0101000, op : 'bhi',   type : OpType.I_BRANCH,
     run : function( pdp11, proc, code, ahead ) {
-      if( ! ( pdp11.ps.c | pdp11.ps.z ) )
+      if( ! ( pdp11.ps.c || pdp11.ps.z ) )
         OpHandler.br( pdp11, proc, code, ahead, Processor.WORD ) ;
   } },
   { judge : 0177400, value : 0101400, op : 'blos',  type : OpType.I_BRANCH,
@@ -305,7 +329,11 @@ var OpCode = [
         OpHandler.br( pdp11, proc, code, ahead, Processor.WORD ) ;
   } },
   { judge : 0177400, value : 0102000, op : 'bvc',   type : OpType.I_BRANCH },
-  { judge : 0177400, value : 0102400, op : 'bvs',   type : OpType.I_BRANCH },
+  { judge : 0177400, value : 0102400, op : 'bvs',   type : OpType.I_BRANCH,
+    run : function( pdp11, proc, code, ahead ) {
+      if( pdp11.ps.v )
+        OpHandler.br( pdp11, proc, code, ahead, Processor.WORD ) ;
+  } },
   { judge : 0177400, value : 0103000, op : 'bcc',   type : OpType.I_BRANCH,
     run : function( pdp11, proc, code, ahead ) {
       if( ! pdp11.ps.c )
@@ -319,7 +347,10 @@ var OpCode = [
   { judge : 0177777, value : 0000241, op : 'clc',   type : OpType.I_CONDITION },
   { judge : 0177777, value : 0000261, op : 'sec',   type : OpType.I_CONDITION },
   { judge : 0177777, value : 0000242, op : 'clv',   type : OpType.I_CONDITION },
-  { judge : 0177777, value : 0000262, op : 'sev',   type : OpType.I_CONDITION },
+  { judge : 0177777, value : 0000262, op : 'sev',   type : OpType.I_CONDITION,
+    run : function( pdp11, proc, code, ahead ) {
+      pdp11.ps.v = true ;
+  } },
   { judge : 0177777, value : 0000244, op : 'clz',   type : OpType.I_CONDITION },
   { judge : 0177777, value : 0000264, op : 'sez',   type : OpType.I_CONDITION },
   { judge : 0177777, value : 0000254, op : 'cln',   type : OpType.I_CONDITION },

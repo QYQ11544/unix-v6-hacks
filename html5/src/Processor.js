@@ -22,6 +22,8 @@ var Processor = {
 
       case 1:
         trace_buffer += '(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) ), 5 ) + ' ' ;
+        if( reg_num == 7 )
+          return reg.get( ) + 2 ;
         return reg.get( ) ;
 
       case 2:
@@ -32,6 +34,8 @@ var Processor = {
           return val ;
         }
         var value = reg.get( ) ;
+        if( reg_num == 7 )
+          value += 2 ;
         if( width == Processor.WORD || reg_num == 6 ) {
           reg.increment( ) ;
         } else {
@@ -48,6 +52,8 @@ var Processor = {
           return val ;
         }
         var value = proc.get_word( reg.get( ) ) ;
+        if( reg_num == 7 )
+          value += 2 ;
         if( width == Processor.WORD || reg_num == 6 ) {
           reg.increment( ) ;
         } else {
@@ -97,6 +103,12 @@ var Processor = {
         var val = proc.get_word( reg.get( ) + ahead.shift( ) ) ;
         trace_buffer += sprintf( 16, val, 5 )
                      +  '(r' + reg_num + '):' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ;
+/*
+        if( current_name == '/lib/c1' && pdp11.regs[ 7 ].get( ) == 0x89e &&
+            proc.get_word( val ) == -0x3ebd ) {
+          window.alert( 'addr : ' + val ) ;
+        }
+*/
         return val ;
 
       default:
@@ -183,6 +195,7 @@ var Processor = {
   // return result
   setRel: function( num, pdp11, proc, ahead, width, value, func ) {
     var addr = this.getAddr( num, pdp11, proc, ahead, width ) ;
+    var val ;
     if( ( num & 070 ) == 000 ) {
       val = pdp11.regs[ num ].get( ) ;
       val = func( val, value ) ;

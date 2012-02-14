@@ -1,3 +1,5 @@
+// trace must be global.
+
 // import PDP11
 // import ProcFile
 // 
@@ -252,10 +254,7 @@ var Proc = {
     }
 
     this.exit_flag = false ;
-
     this.step = 0 ;
-
-//    while( ! this.exit_flag && pdp11.regs[7].get( ) < this.text_end_address( ) ) {
     while( ! this.exit_flag && pdp11.regs[7].get( ) < this.stack_begin_address( ) ) {
 
       var code = this.get_word( pdp11.regs[7].get( ) ) ;
@@ -274,14 +273,12 @@ var Proc = {
           break ;
         }
       }
-      trace_buffer += current_name + ' : ' ;
-      trace_buffer += pdp11.string( this ) ;
-      trace_buffer += result.op + ' ' ;
-
-      console.log( result.op + ' pc : ' + pdp11.regs[ 7 ].get( ).toString( 16 ) ) ;
+      trace.append( current_name + ' : ' + pdp11.string( this ) + result.op + ' ' ) ;
       result.run( pdp11, this, code, ahead ) ;
-
       pdp11.nextStep( ) ;
+
+      trace.append( "\n" ) ;
+
 /*
       for( var key in this.symbols ) {
         if( this.symbols[ key ] == pdp11.regs[ 7 ].get( ) )
@@ -289,18 +286,11 @@ var Proc = {
       }
 */
 
-      trace_buffer += "\n" ;
-
       this.step++ ;
 //      if( this.step > 300000 )
 //        break ;
 
-//      if( current_name == '/lib/as2' && this.step > 10000 )
-//        break ;
-
     }
-
-    return { 'result' : result, 'trace' : trace_buffer };
 
   }
 

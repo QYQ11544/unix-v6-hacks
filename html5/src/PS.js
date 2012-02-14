@@ -4,10 +4,10 @@ var PS = {
   previous_mode: null,
   priority: null,
   trap: null,
-  n: null,
-  z: null,
-  v: null,
-  c: null,
+  n: false,
+  z: false,
+  v: false,
+  c: false,
 
   create: function( ) {
     return this ;

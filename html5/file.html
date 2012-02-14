@@ -24,6 +24,7 @@
 <script type="text/javascript" src="src/ProcFile.js"></script>
 <script type="text/javascript" src="src/Proc.js"></script>
 <script type="text/javascript" src="src/Kernel.js"></script>
+<script type="text/javascript" src="src/Trace.js"></script>
 <script type="text/javascript">
 
 var bin_data ;
@@ -33,14 +34,13 @@ var inodeview ;
 var superblockview ;
 var binaryview ;
 var runview ;
-var traceview ;
 var argview ;
 var superblock ;
 var current_i_number ;
 var current_name ;
 var current_dir_i_number ;
 var pdp11 ;
-var trace_buffer ;
+var trace ;
 var stdin = String( ) ;
 var stdout ;
 var u_name ;
@@ -122,7 +122,6 @@ function viewFile( i_number, name ) {
   inodeview.value = inode.string( ) ;
   binaryview.value = file.binary_data( ) ;
   runview.value = '' ;
-  traceview.value = '' ;
 
   current_i_number = i_number ;
   current_name = name ;
@@ -188,14 +187,15 @@ function run( ) {
     return ;
 
   runview.value = '' ;
-  traceview.value = '' ;
-  trace_buffer = '' ;
+  trace = object( Trace ).create( ) ;
   var exe = object( Exe ).create( file ) ;
   var proc = object( Proc ).create( ) ;
   proc.load( exe ) ;
-  var result = proc.run( ) ;
-  runview.value += result.result ;
-  traceview.value += result.trace ;
+  proc.run( ) ;
+  var link = document.createElement( 'a' ) ;
+  link.href = trace.getLink( ) ;
+  link.innerHTML = 'trace data.' ;
+  argview.parentElement.insertBefore( link, argview.nextSibling ) ;
 
 }
 
@@ -209,7 +209,6 @@ function init( ) {
   superblockview = document.getElementById( "superblockview" ) ;
   runview        = document.getElementById( "runview" ) ;
   argview        = document.getElementById( "argview" ) ;
-  traceview      = document.getElementById( "traceview" ) ;
 
 }
 
@@ -245,10 +244,6 @@ function init( ) {
 <input type="text" id="argview" />
 <br />
 <textarea id="runview" cols="100" rows="20">
-</textarea>
-</p>
-<p>
-<textarea id="traceview" cols="200" rows="50">
 </textarea>
 </p>
 </td>

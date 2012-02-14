@@ -1,11 +1,10 @@
+// trace must be global.
+
+// this class is static.
 var Processor = {
 
   WORD : 0x01,
   BYTE : 0x02,
-
-  create: function( ) {
-    return this ;
-  },
 
   // return 16bits value because it's address
   getAddr: function( num, pdp11, proc, ahead, width ) {
@@ -17,11 +16,11 @@ var Processor = {
     switch( type ) {
 
       case 0: // illegal?
-        trace_buffer += 'r' + reg_num + ':' + sprintf( 16, reg.get( ), 5 ) + ' ' ;
+        trace.append( 'r' + reg_num + ':' + sprintf( 16, reg.get( ), 5 ) + ' ' ) ;
         return reg_num ;
 
       case 1:
-        trace_buffer += '(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) ), 5 ) + ' ' ;
+        trace.append( '(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) ), 5 ) + ' ' ) ;
         if( reg_num == 7 )
           return reg.get( ) + 2 ;
         return reg.get( ) ;
@@ -30,7 +29,7 @@ var Processor = {
         if( reg_num == 7 ) {
           pdp11.nextStep( ) ;
           var val = ahead.shift( ) ;
-          trace_buffer += '$' + sprintf( 16, val, 5 ) + ' ' ;
+          trace.append( '$' + sprintf( 16, val, 5 ) + ' ' ) ;
           return val ;
         }
         var value = reg.get( ) ;
@@ -41,14 +40,14 @@ var Processor = {
         } else {
           reg.set( reg.get( ) + 1 ) ;
         }
-        trace_buffer += '(r' + reg_num + ')+:' + sprintf( 16, proc.get_word( value ), 5 ) + ' ' ;
+        trace.append( '(r' + reg_num + ')+:' + sprintf( 16, proc.get_word( value ), 5 ) + ' ' ) ;
         return value ;
 
       case 3:
         if( reg_num == 7 ) {
           pdp11.nextStep( ) ;
           var val = ahead.shift( ) - 2 ;
-          trace_buffer += '*$' + sprintf( 16, val, 5 ) + ' ' ;
+          trace.append( '*$' + sprintf( 16, val, 5 ) + ' ' ) ;
           return val ;
         }
         var value = proc.get_word( reg.get( ) ) ;
@@ -59,7 +58,7 @@ var Processor = {
         } else {
           reg.set( reg.get( ) + 1 ) ;
         }
-        trace_buffer += '*(r' + reg_num + ')+:' + sprintf( 16, proc.get_word( value ), 5 ) + ' ' ;
+        trace.append( '*(r' + reg_num + ')+:' + sprintf( 16, proc.get_word( value ), 5 ) + ' ' ) ;
         return value ;
 
       // is this logic right if width != Processor.WORD ?
@@ -68,7 +67,7 @@ var Processor = {
           reg.decrement( ) ;
         else
           reg.set( reg.get( ) - 1 ) ;
-        trace_buffer += '-(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) ), 5 ) + ' ' ;
+        trace.append( '-(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) ), 5 ) + ' ' ) ;
         return reg.get( ) ;
 
       // is this logic right if width != Processor.WORD ?
@@ -78,37 +77,32 @@ var Processor = {
         else
           reg.set( reg.get( ) - 1 ) ;
         var val = proc.get_word( reg.get( ) ) ;
-        trace_buffer += '*-(r' + reg_num + '):' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ;
+        trace.append( '*-(r' + reg_num + '):' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ) ;
         return val ;
 
       case 6:
         pdp11.nextStep( ) ;
         if( reg_num == 7 ) {
           var val = pdp11.regs[ 7 ].get( ) + ahead.shift( ) + 2 ;
-          trace_buffer += sprintf( 16, val, 5 ) + ':' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ;
+          trace.append( sprintf( 16, val, 5 ) + ':' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ) ;
           return val ;
         }
         var val = ahead.shift( ) ;
-        trace_buffer += sprintf( 16, val, 5 )
-                     +  '(r' + reg_num + '):' + sprintf( 16, proc.get_word( reg.get( ) + val ), 5 ) + ' ' ;
+        trace.append( sprintf( 16, val, 5 )
+                      + '(r' + reg_num + '):'
+                      + sprintf( 16, proc.get_word( reg.get( ) + val ), 5 ) + ' ' ) ;
         return reg.get( ) + val ;
 
       case 7:
         pdp11.nextStep( ) ;
         if( reg_num == 7 ) {
           var val = pdp11.regs[ 7 ].get( ) + ahead.shift( ) + 2 ;
-          trace_buffer += '$' + sprintf( 16, val, 5 ) + ' ' ;
+          trace.append( '$' + sprintf( 16, val, 5 ) + ' ' ) ;
           return proc.get_word( val ) ;
         }
         var val = proc.get_word( reg.get( ) + ahead.shift( ) ) ;
-        trace_buffer += sprintf( 16, val, 5 )
-                     +  '(r' + reg_num + '):' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ;
-/*
-        if( current_name == '/lib/c1' && pdp11.regs[ 7 ].get( ) == 0x89e &&
-            proc.get_word( val ) == -0x3ebd ) {
-          window.alert( 'addr : ' + val ) ;
-        }
-*/
+        trace.append( sprintf( 16, val, 5 )
+                      +  '(r' + reg_num + '):' + sprintf( 16, proc.get_word( val ), 5 ) + ' ' ) ;
         return val ;
 
       default:

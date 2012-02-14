@@ -1,3 +1,5 @@
+// trace must be global.
+
 var OpHandler = {
 
   mov: function( pdp11, proc, code, ahead, width ) {
@@ -161,7 +163,7 @@ var OpHandler = {
     if( sign )
       des = ( ( ( code & 0377 ) - 1 ) ^ 0377 ) * -1 ;
     pdp11.regs[ 7 ].set( pdp11.regs[ 7 ].get( ) + ( des * 2 ) ) ;
-    trace_buffer += sprintf( 16, pdp11.regs[ 7 ].get( ) + 2, 5 ) + ' ' ;
+    trace.append( sprintf( 16, pdp11.regs[ 7 ].get( ) + 2, 5 ) + ' ' ) ;
   },
 
   rol: function( pdp11, proc, code, ahead, width ) {

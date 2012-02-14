@@ -1,3 +1,5 @@
+// trace must be global.
+
 // import OpType
 // import Processor
 
@@ -392,11 +394,11 @@ var OpCode = [
   { judge : 0177400, value : 0104400, op : 'sys',   type : OpType.I_SYSTEM,
     run : function( pdp11, proc, code, ahead ) {
       var sys = SystemCall[ code & 0377 ] ;
-      console.log( sys.name ) ;
-      trace_buffer += sys.name + ' ' ;
+      var buffer = sys.name + ' ' ;
       for( var i = 0; i < sys.argc; i++ ) {
-        trace_buffer += sprintf( 16, proc.get_word( pdp11.regs[ 7 ].get( ) + 2 + i * 2 ), 5 ) + ' ' ;
+        buffer += sprintf( 16, proc.get_word( pdp11.regs[ 7 ].get( ) + 2 + i * 2 ), 5 ) + ' ' ;
       }
+      trace.append( buffer ) ;
       sys.run( pdp11, proc, code, ahead ) ;
   } },
   { judge : 0000000, value : 0000000, op : '??',    type : OpType.I_OTHER } // general

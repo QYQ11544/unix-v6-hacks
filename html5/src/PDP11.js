@@ -45,6 +45,31 @@ var PDP11 = {
     buffer += 'r7:' + sprintf( 16, this.regs[ 7 ].get( ), 5 ) + ' ' ;
 
     return buffer ;
+  },
+
+  getRegsAsArray: function( ) {
+    var array = new Array( ) ;
+    for( var i = 0; i < this.regs.length; i++ ) {
+      array.push( this.regs[ i ].get( ) ) ;
+    }
+    return array ;
+  },
+
+  getPSAsHashArray: function( ) {
+    return { 'c' : this.ps.c, 'v' : this.ps.v, 'n' : this.ps.n, 'z' : this.ps.z } ;
+  },
+
+  loadRegs: function( array ) {
+    for( var i = 0; i < this.regs.length; i++ ) {
+      this.regs[ i ].set( array[ i ] ) ;
+    }
+  },
+
+  loadPS: function( array ) {
+    this.ps.c = array.c ;
+    this.ps.v = array.v ;
+    this.ps.n = array.n ;
+    this.ps.z = array.z ;
   }
 
 } ;

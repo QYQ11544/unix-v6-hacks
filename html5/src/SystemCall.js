@@ -28,18 +28,16 @@ var SystemCall = {
            proc.exit_flag = true ;
            pdp11.regs[ 0 ].set( 1 ) ;
            pdp11.ps.c = false ;
+           if( proc_queue.length != 0 )
+             Kernel.swtch( proc ) ;
+           proc.set_word( pdp11.regs[ 6 ].get( ), 1 ) ; // temporary
        } },
    2 : { name : 'fork',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
            // not implemented yet
-           ps_stack.push( pdp11.ps ) ;
-           pc_stack.push( pdp11.regs[ 7 ].get( ) ) ;
-           sp_stack.push( pdp11.regs[ 6 ].get( ) ) ;
-           r5_stack.push( pdp11.regs[ 5 ].get( ) ) ;
-           ret_stack.push( proc.get_word( pdp11.regs[6].get( ) + 2 ) ) ;
+           Kernel.newproc( proc ) ;
            pdp11.nextStep( ) ;
-           pdp11.regs[0].set( 1 ) ; // parent
-           fork_flag = true ;
+           pdp11.regs[0].set( 1 ) ;
        } },
    3 : { name : 'read',    argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -152,38 +150,7 @@ var SystemCall = {
        } },
    7 : { name : 'wait',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
-
-           if( ! fork_flag ) {
-             pdp11.ps.c = false ;
-             pdp11.regs[ 1 ].set( 0 ) ; // of wait
-             pdp11.regs[ 0 ].set( 1 ) ; // of wait
-             return ;
-           }
-
-           var backup = new Array( ) ;
-           for( var i = 0; i < proc.uint8_array.length; i++ )
-             backup.push( proc.uint8_array[ i ] ) ;
-           proc_stack.push( backup ) ;
-
-           var tmp_ps = pdp11.ps ;
-           var tmp_pc = pdp11.regs[ 7 ].get( ) ;
-           var tmp_sp = pdp11.regs[ 6 ].get( ) ;
-           var tmp_r5 = pdp11.regs[ 5 ].get( ) ;
-           var tmp_ret = proc.get_word( pdp11.regs[6].get( ) + 2 ) ;
-           pdp11.ps            = ps_stack.pop( ) ;
-           pdp11.regs[7].set( pc_stack.pop( ) ) ;
-           pdp11.regs[6].set( sp_stack.pop( ) ) ;
-           pdp11.regs[5].set( r5_stack.pop( ) ) ;
-           proc.set_word( pdp11.regs[ 6 ].get( ) + 2, ret_stack.pop( ) ) ;
-           ps_stack.push( tmp_ps ) ;
-           pc_stack.push( tmp_pc ) ;
-           sp_stack.push( tmp_sp ) ;
-           r5_stack.push( tmp_r5 ) ; // ?
-           ret_stack.push( tmp_ret ) ;
-
-           pdp11.regs[0].set( 0 ) ; // child
-           wait_flag = true ;
-
+           Kernel.swtch( proc ) ;
        } },
    8 : { name : 'creat',   argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -288,39 +255,12 @@ var SystemCall = {
            if( ! file.isExe( ) )
              return ;
 
-           var old_current_name = current_name ;
-           current_name = path ;
            var old_argview_value = argview.value ;
            argview.value = args.trim( ) ;
-           proc.result = '' ;
            var exe = object( Exe ).create( file ) ;
 
-           if( ! wait_flag ) {
-             proc.load( exe ) ;
-             proc.init( ) ;
-             return ;
-           }
-
-           var proc2 = object( Proc ).create( ) ;
-           proc2.load( exe ) ;
-           proc2.run( ) ;
-           current_name = old_current_name ;
-           argview.value = old_argview_value ;
-           pdp11.ps = ps_stack.pop( ) ;
-           pdp11.regs[ 7 ].set( pc_stack.pop( ) ) ;
-           pdp11.regs[ 6 ].set( sp_stack.pop( ) ) ;
-           pdp11.regs[ 5 ].set( r5_stack.pop( ) ) ;
-//           pdp11.regs[ 1 ].set( pdp11.regs[ 0 ].get( ) << 8 ) ; // of wait
-           pdp11.regs[ 1 ].set( 0 ) ; // of wait
-           pdp11.regs[ 0 ].set( 1 ) ; // of wait
-
-           var backup = proc_stack.pop( ) ;
-           for( var i = 0; i < backup.length; i++ )
-             proc.uint8_array[ i ] = backup[ i ] ;
-           proc.set_word( pdp11.regs[ 6 ].get( ), 1 ) ; // temporary
-
-           wait_flag = false ;
-           fork_flag = false ;
+           proc.load( exe ) ;
+           proc.init( ) ;
 
        } },
   12 : { name : 'chdir',   argc : 1 },

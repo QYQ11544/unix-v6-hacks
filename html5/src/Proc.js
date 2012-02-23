@@ -133,6 +133,10 @@ var Proc = {
     return word ;
   },
 
+  copy: function( ) {
+    return clone( this ) ;
+  },
+
   // dupllicated
   init: function( ) {
 
@@ -171,7 +175,7 @@ var Proc = {
     pdp11.regs[4].set( 0 ) ;
     pdp11.regs[5].set( 0 ) ;
     pdp11.regs[6].set( this.stack_begin_address( ) - all_length - 2 * args.length - 4 ) ;
-    pdp11.regs[7].set( 0 ) ;
+    pdp11.regs[7].set( -2 ) ;
 
     this.pop( ) ;
     for( var i = 0; i < args.length; i++ )
@@ -292,6 +296,47 @@ var Proc = {
 
     }
 
+  },
+
+  copy: function( ) {
+    var p = new object( ) ;
+
+    p.symbols       = this.symbols ;
+    p.text_address  = this.text_address ;
+    p.text_size     = this.text_size ;
+    p.data_address  = this.data_address ;
+    p.stack_address = this.stack_address ;
+    p.exit_flag     = this.exit_flag ;
+    p.files         = this.files ;
+    p.step          = this.step ;
+
+    var backup = new Array( ) ;
+    for( var i = 0; i < this.uint8_array.length; i++ )
+      backup.push( this.uint8_array[ i ] ) ;
+    p.backup = backup ;
+
+    return p ;
+  },
+
+  read: function( proc ) {
+
+    var buffer = new ArrayBuffer( proc.backup.length ) ;
+    this.uint8_array = new Uint8Array( buffer ) ;
+    this.uint16_array = new Uint16Array( buffer ) ;
+    this.int16_array = new Int16Array( buffer ) ;
+
+    var backup = proc.backup ;
+    for( var i = 0; i < backup.length; i++ )
+      this.uint8_array[ i ] = backup[ i ] ;
+
+    this.symbols       = proc.symbols ;
+    this.text_address  = proc.text_address ;
+    this.text_size     = proc.text_size ;
+    this.data_address  = proc.data_address ;
+    this.stack_address = proc.stack_address ;
+    this.exit_flag     = proc.exit_flag ;
+    this.files         = proc.files ;
+    this.step          = proc.step ;
   }
 
 } ;

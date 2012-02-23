@@ -1,3 +1,5 @@
+// procs must be global.
+
 // import Directory
 // import Util
 // import ProcFile
@@ -94,6 +96,40 @@ var Kernel = {
   // not implemented yet
   wdir: function( inode ) {
     u_dir.add_entry( inode.i_number ) ;
+  },
+
+  // proc is a process that will sleep
+  swtch: function( proc ) {
+
+    var regs = regs_queue.shift( ) ;
+    var ps   = ps_queue.shift( ) ;
+    var p    = proc_queue.shift( ) ;
+
+    if( ! proc.exit_flag ) {
+      pdp11.regs[ 1 ].set( 0 ) ;
+      pdp11.regs[ 0 ].set( 1 ) ;
+      proc_queue.unshift( proc.copy( ) ) ;
+      regs_queue.unshift( pdp11.getRegsAsArray( ) ) ;
+      ps_queue.unshift( pdp11.getPSAsHashArray( ) ) ;
+    }
+
+    proc.read( p ) ;
+    pdp11.loadRegs( regs ) ;
+    pdp11.loadPS( ps ) ;
+
+  },
+
+  // proc is a parent process.
+  newproc: function( proc ) {
+    var p    = proc.copy( ) ;
+    var regs = pdp11.getRegsAsArray( ) ;
+    var ps   = pdp11.getPSAsHashArray( ) ;
+
+    regs[ 0 ] = 0 ;
+
+    proc_queue.unshift( p ) ;
+    regs_queue.unshift( regs ) ;
+    ps_queue.unshift( ps ) ;
   }
 
 } ;

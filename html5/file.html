@@ -2,6 +2,7 @@
 <head>
 <meta charset="utf-8">
 <title>file</title>
+<script type="text/javascript" src="src/Global.js"></script>
 <script type="text/javascript" src="src/object.js"></script>
 <script type="text/javascript" src="src/Util.js"></script>
 <script type="text/javascript" src="src/BinData.js"></script>
@@ -27,30 +28,7 @@
 <script type="text/javascript" src="src/Trace.js"></script>
 <script type="text/javascript">
 
-var bin_data ;
-var resultview ;
-var textview ;
-var inodeview ;
-var superblockview ;
-var binaryview ;
-var runview ;
-var argview ;
-var superblock ;
-var current_i_number ;
-var current_name ;
-var current_dir_i_number ;
-var pdp11 ;
-var trace ;
-var stdin = String( ) ;
-var stdout ;
-var u_name ;
-var u_dir ;
-var ps_stack = new Array( ) ;
-var pc_stack = new Array( ) ;
-var sp_stack = new Array( ) ;
-var r5_stack = new Array( ) ;
-var ret_stack = new Array( ) ;
-var proc_stack = new Array( ) ;
+
 
 window.addEventListener( 'dragover', function( event ) {
   event.preventDefault( ) ;
@@ -232,11 +210,11 @@ function init( ) {
 </textarea>
 </p>
 <p>
-<textarea id="textview" cols="100" rows="50">
+<textarea id="textview" cols="100" rows="30">
 </textarea>
 </p>
 <p>
-<textarea id="binaryview" cols="100" rows="50">
+<textarea id="binaryview" cols="100" rows="30">
 </textarea>
 </p>
 <p>

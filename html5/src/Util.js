@@ -33,3 +33,12 @@ function get_inode( i_number ) {
   // bin_data must be global.
   return object( Inode ).create( i_number, bin_data ) ;
 }
+
+function clone( obj ) {
+  var o = new Object( ) ;
+  for( var prop in obj ) {
+    o[ prop ] = obj[ prop ] ;
+  }
+  return o ;
+}
+

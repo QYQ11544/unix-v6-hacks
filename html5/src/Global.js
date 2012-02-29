@@ -6,6 +6,7 @@ var superblockview ;
 var binaryview ;
 var runview ;
 var argview ;
+var traceview ;
 var superblock ;
 var current_i_number ;
 var current_name ;

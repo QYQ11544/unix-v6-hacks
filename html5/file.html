@@ -124,7 +124,7 @@ function foldDirectory( parent, i_number ) {
     if( ! inode.is_IFDIR( ) || inode.is_IFCHR( ) )
       return ;
 
-    current_i_number = i_number ;
+    current_dir_i_number = i_number ;
     var dir = object( Directory ).create( inode ) ;
     var ul = document.createElement( 'ul' ) ;
     var has_children = false ;
@@ -158,6 +158,9 @@ function foldDirectory( parent, i_number ) {
 
 function run( ) {
 
+  while( traceview.firstChild )
+    traceview.removeChild( traceview.firstChild ) ;
+
   var inode = get_inode( current_i_number ) ;
   var file = object( File ).create( inode ) ;
 
@@ -173,7 +176,7 @@ function run( ) {
   var link = document.createElement( 'a' ) ;
   link.href = trace.getLink( ) ;
   link.innerHTML = 'trace data.' ;
-  argview.parentElement.insertBefore( link, argview.nextSibling ) ;
+  traceview.appendChild( link ) ;
 
 }
 
@@ -187,6 +190,7 @@ function init( ) {
   superblockview = document.getElementById( "superblockview" ) ;
   runview        = document.getElementById( "runview" ) ;
   argview        = document.getElementById( "argview" ) ;
+  traceview      = document.getElementById( "traceview" ) ;
 
 }
 
@@ -220,6 +224,7 @@ function init( ) {
 <p>
 <button onClick="run( )">run</button>
 <input type="text" id="argview" />
+<span id="traceview"></span>
 <br />
 <textarea id="runview" cols="100" rows="20">
 </textarea>

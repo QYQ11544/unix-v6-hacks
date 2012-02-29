@@ -70,8 +70,8 @@ var Directory = {
     for( var i = 0; i < this.size( ); i++ ) {
       var e = this.entry( i ) ;
       if( i_number == e.i_number ) {
-        this.inode.set_word_data( index * 16, 0 ) ;
         index = i ;
+        this.inode.set_word_data( index * 16, 0 ) ;
         break ;
       }
     }

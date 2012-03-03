@@ -64,17 +64,9 @@ var Directory = {
 
   },
 
-  remove_entry: function( i_number ) {
+  remove_entry: function( index ) {
 
-    var index = 0 ;
-    for( var i = 0; i < this.size( ); i++ ) {
-      var e = this.entry( i ) ;
-      if( i_number == e.i_number ) {
-        index = i ;
-        this.inode.set_word_data( index * 16, 0 ) ;
-        break ;
-      }
-    }
+    this.inode.set_word_data( index * 16, 0 ) ;
     if( index == this.size( ) ) {
       this.inode.set_size( this.inode.size( ) - 16 ) ;
     }

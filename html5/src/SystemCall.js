@@ -70,6 +70,7 @@ var SystemCall = {
              }
            }
            pdp11.regs[ 0 ].set( count ) ;
+           pdp11.ps.c = false ;
        } },
    4 : { name : 'write',   argc : 2,
          run : function( pdp11, proc, code, ahead ) {
@@ -164,8 +165,17 @@ var SystemCall = {
              opr1++ ;
            }
            var inode = Kernel.namei( path ) ;
-           if( ! inode )
+           if( ! inode ) {
              inode = Kernel.maknod( ) ;
+           } else {
+             for( var i = 0; i < 8; i++ ) {
+               var index = inode.addr( i ) ;
+               if( index )
+                 superblock.push_free( index ) ;
+               inode.set_addr( i, 0 ) ;
+             }
+             inode.set_size( 0 ) ;
+           }
            var num = Kernel.falloc( proc, inode ) ;
            pdp11.regs[ 0 ].set( num ) ;
            pdp11.ps.c = false ;
@@ -214,7 +224,7 @@ var SystemCall = {
              pdp11.ps.c = true ;
              return ;
            }
-           u_dir.remove_entry( inode.i_number ) ;
+           u_dir.remove_entry( u_index ) ;
            pdp11.ps.c = false ;
        } },
   11 : { name : 'exec',    argc : 2,
@@ -263,14 +273,54 @@ var SystemCall = {
            proc.init( ) ;
 
        } },
-  12 : { name : 'chdir',   argc : 1 },
+  12 : { name : 'chdir',   argc : 1,
+         run : function( pdp11, proc, code, ahead ) {
+           pdp11.nextStep( ) ;
+           var opr1 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           var path = '' ;
+           while( proc.get_byte( opr1 ) ) {
+             path += String.fromCharCode( proc.get_byte( opr1 ) ) ;
+             opr1++ ;
+           }
+           var inode = Kernel.namei( path ) ;
+           if( ! inode ) {
+             pdp11.ps.c = true ;
+             return ;
+           }
+           if( ! inode.is_IFDIR( ) ) {
+             pdp11.ps.c = true ;
+             return ;
+           }
+           current_dir_i_number = inode.i_number ;
+       } },
   13 : { name : 'time',    argc : 0,
          run : function( pdp11, proc, code, ahead ) {
            var now = parseInt( ( new Date( ) ).getTime( ) / 1000 ) ;
            pdp11.regs[ 0 ].set( ( now & 0xffff0000 ) >> 16 ) ;
            pdp11.regs[ 1 ].set( now & 0xffff ) ;
        } },
-  14 : { name : 'mknod',   argc : 3 },
+  14 : { name : 'mknod',   argc : 3,
+         run : function( pdp11, proc, code, ahead ) {
+           pdp11.nextStep( ) ;
+           var opr1 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           pdp11.nextStep( ) ;
+           var opr2 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           pdp11.nextStep( ) ;
+           var opr3 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           var path = '' ;
+           while( proc.get_byte( opr1 ) ) {
+             path += String.fromCharCode( proc.get_byte( opr1 ) ) ;
+             opr1++ ;
+           }
+           var inode = Kernel.namei( path ) ;
+           if( inode ) {
+             pdp11.ps.c = true ;
+             return ;
+           }
+           var ino = Kernel.makdir( opr2 ) ;
+           ino.set_addr( 0, opr3 ) ;
+           pdp11.ps.c = false ;
+       } },
   15 : { name : 'chmod',   argc : 2,
          run : function( pdp11, proc, code, ahead ) {
            pdp11.nextStep( ) ;
@@ -287,7 +337,14 @@ var SystemCall = {
              return ;
            inode.set_mode( opr2 & 0xffff ) ;
        } },
-  16 : { name : 'chown',   argc : 2 },
+  16 : { name : 'chown',   argc : 2,
+         // not implemented yet
+         run : function( pdp11, proc, code, ahead ) {
+           pdp11.nextStep( ) ;
+           var opr1 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+           pdp11.nextStep( ) ;
+           var opr2 = proc.get_word( pdp11.regs[ 7 ].get( ) ) ;
+       } },
   17 : { name : 'break',   argc : 1,
          // not implemented yet
          run : function( pdp11, proc, code, ahead ) {
@@ -378,8 +435,14 @@ var SystemCall = {
        } },
   21 : { name : 'mount',   argc : 3 },
   22 : { name : 'unmount', argc : 1 },
-  23 : { name : 'setuid',  argc : 0 },
-  24 : { name : 'setgid',  argc : 0 },
+  23 : { name : 'setuid',  argc : 0,
+         run : function( pdp11, proc, code, ahead ) {
+         // not implemented yet.
+       } },
+  24 : { name : 'setgid',  argc : 0,
+         run : function( pdp11, proc, code, ahead ) {
+         // not implemented yet.
+       } },
   25 : { name : 'stime',   argc : 0 },
   26 : { name : 'ptrace',  argc : 3 },
   28 : { name : 'fstat',   argc : 1,

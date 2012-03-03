@@ -17,6 +17,7 @@ var stdin = String( ) ;
 var stdout ;
 var u_name ;
 var u_dir ;
+var u_index ;
 var ps_stack = new Array( ) ;
 var pc_stack = new Array( ) ;
 var sp_stack = new Array( ) ;

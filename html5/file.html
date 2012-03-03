@@ -172,7 +172,11 @@ function run( ) {
   var exe = object( Exe ).create( file ) ;
   var proc = object( Proc ).create( ) ;
   proc.load( exe ) ;
-  proc.run( ) ;
+  try {
+    proc.run( ) ;
+  } catch( e ) {
+    console.log( e ) ;
+  }
   var link = document.createElement( 'a' ) ;
   link.href = trace.getLink( ) ;
   link.innerHTML = 'trace data.' ;

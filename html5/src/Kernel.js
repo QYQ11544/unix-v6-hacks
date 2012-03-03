@@ -34,6 +34,7 @@ var Kernel = {
         if( name == array[ i ] ) {
           dir_i_number = e.i_number ;
           match = true ;
+          u_index = j ;
           break ;
         }
       }
@@ -89,6 +90,13 @@ var Kernel = {
 
   maknod: function( mode ) {
     var inode = this.ialloc( ) ;
+    this.wdir( inode ) ;
+    return inode ;
+  },
+
+  makdir: function( mode ) {
+    var inode = this.ialloc( ) ;
+    inode.set_mode( inode.mode( ) | mode ) ;
     this.wdir( inode ) ;
     return inode ;
   },

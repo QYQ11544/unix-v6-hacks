@@ -1,0 +1,456 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>file</title>
+<script type="text/javascript" src="src/Global.js"></script>
+<script type="text/javascript" src="src/object.js"></script>
+<script type="text/javascript" src="src/Util.js"></script>
+<script type="text/javascript" src="src/BinData.js"></script>
+<script type="text/javascript" src="src/FilSys.js"></script>
+<script type="text/javascript" src="src/Inode.js"></script>
+<script type="text/javascript" src="src/Directory.js"></script>
+<script type="text/javascript" src="src/DirectoryEntry.js"></script>
+<script type="text/javascript" src="src/File.js"></script>
+<script type="text/javascript" src="src/ExeHeader.js"></script>
+<script type="text/javascript" src="src/OpType.js"></script>
+<script type="text/javascript" src="src/OpHandler.js"></script>
+<script type="text/javascript" src="src/OpCode.js"></script>
+<script type="text/javascript" src="src/SystemCall.js"></script>
+<script type="text/javascript" src="src/Disassembler.js"></script>
+<script type="text/javascript" src="src/Exe.js"></script>
+<script type="text/javascript" src="src/PS.js"></script>
+<script type="text/javascript" src="src/Register.js"></script>
+<script type="text/javascript" src="src/Processor.js"></script>
+<script type="text/javascript" src="src/PDP11.js"></script>
+<script type="text/javascript" src="src/ProcFile.js"></script>
+<script type="text/javascript" src="src/Proc.js"></script>
+<script type="text/javascript" src="src/Kernel.js"></script>
+<script type="text/javascript" src="src/Trace.js"></script>
+<script type="text/javascript">
+
+
+
+window.addEventListener( 'dragover', function( event ) {
+  event.preventDefault( ) ;
+}, false ) ;
+
+window.addEventListener( 'drop', function( event ) {
+
+  event.preventDefault( ) ;
+  var file = event.dataTransfer.files[ 0 ] ;
+
+  var reader = new FileReader( ) ;
+  reader.onload = function( event ) {
+
+    bin_data = object( BinData ).create( event.target.result ) ;
+    pdp11 = object( PDP11 ).create( ) ;
+
+    superblock = object( Filsys ).create( bin_data ) ;
+    superblockview.value = superblock.string( ) ;
+
+    var ul = document.createElement( 'ul' ) ;
+    var li = document.createElement( 'li' ) ;
+    var a  = document.createElement( 'a' ) ;
+    a.href = "javascript:void( 0 )" ;
+    a.setAttribute( "onclick", "viewFile( 1, '/' ); foldDirectory( this.parentElement, 1 )" ) ;
+    a.innerHTML = "/" ;
+
+    li.appendChild( a ) ;
+    ul.appendChild( li ) ;
+    resultview.appendChild( ul ) ;
+
+    current_dir_i_number = 1 ;
+
+    var inode = get_inode( 0x1d6 ) ;
+    var file = object( File ).create( inode ) ;
+    var exe = object( Exe ).create( file ) ;
+/*
+    window.alert( file.inode.data_addr( 0 ).toString( 16 ) ) ;
+    for( var i = 0; i < 0x50; i += 2 ) {
+      window.alert( i.toString( 16 ) + ':' + file.word_data( i ).toString( 16 ) ) ;
+    }
+*/
+    loaded = true ;
+    terminal.value = '> ' ;
+    terminal_line = '';
+  } ;
+  reader.onerror = function( e ) {
+    resultview.innerHTML += 'Error!<br>' ;
+    resultview.innerHTML += '<br>' ;
+    for( var key in reader.error ) {
+      resultview.innerHTML += key + '=' + reader.error[ key ] + '<br>' ;
+    }
+  };
+  reader.readAsArrayBuffer( file ) ;
+
+}, false ) ;
+
+function viewFile( i_number, name ) {
+
+  var inode = get_inode( i_number ) ;
+  var file = object( File ).create( inode ) ;
+
+  if( file.isExe( ) ) {
+    var exe = object( Exe ).create( file ) ;
+    textview.value = exe.disassemble( ) ;
+  } else {
+    var e = ( inode.is_IFDIR( ) && ! inode.is_IFCHR( ) )
+              ? object( Directory ).create( inode )
+              : object( File ).create( inode ) ;
+    textview.value = e.string( ) ;
+  }
+
+  inodeview.value = inode.string( ) ;
+  binaryview.value = file.binary_data( ) ;
+  runview.value = '' ;
+
+  current_i_number = i_number ;
+  current_name = name ;
+
+}
+
+function foldDirectory( parent, i_number ) {
+
+  var ele = parent.firstChild.nextSibling ;
+
+  if( ele ) {
+
+    while( ele ) {
+      parent.removeChild( ele ) ;
+      ele = ele.nextSibling ;
+    }
+
+  } else {
+
+    var inode = get_inode( i_number ) ;
+
+    if( ! inode.is_IFDIR( ) || inode.is_IFCHR( ) )
+      return ;
+
+    current_dir_i_number = i_number ;
+    var dir = object( Directory ).create( inode ) ;
+    var ul = document.createElement( 'ul' ) ;
+    var has_children = false ;
+
+    for( var i = 0; i < dir.size( ); i++ ) {
+
+      var e = dir.entry( i ) ;
+
+      if( e.empty( ) || e.is_relative( ) )
+        continue ;
+
+      var li = document.createElement( 'li' ) ;
+      var a  = document.createElement( 'a' ) ;
+      a.href = "javascript:void( 0 )" ;
+      a.setAttribute( "onclick",
+                      "viewFile( " + e.i_number + ", '" + e.name + "' ); foldDirectory( this.parentElement, " + e.i_number + " )" ) ;
+      a.innerHTML = e.get_displayed_name( ) ;
+
+      li.appendChild( a ) ;
+      ul.appendChild( li ) ;
+      has_children = true ;
+
+    }
+
+    if( has_children )
+      parent.appendChild( ul ) ;
+
+  }
+
+}
+
+function run( ) {
+
+  while( traceview.firstChild )
+    traceview.removeChild( traceview.firstChild ) ;
+
+  var inode = get_inode( current_i_number ) ;
+  var file = object( File ).create( inode ) ;
+
+  if( ! file.isExe( ) )
+    return ;
+
+  runview.value = '' ;
+  trace = object( Trace ).create( ) ;
+  var exe = object( Exe ).create( file ) ;
+  var proc = object( Proc ).create( ) ;
+  proc.load( exe ) ;
+  try {
+    proc.run( ) ;
+  } catch( e ) {
+    console.log( e ) ;
+  }
+  var link = document.createElement( 'a' ) ;
+  link.href = trace.getLink( ) ;
+  link.innerHTML = 'trace data.' ;
+  traceview.appendChild( link ) ;
+
+}
+
+function save( ) {
+  editview.style.display     = 'none' ;
+  savebutton.style.display   = 'none' ;
+  reloadbutton.style.display = 'none' ;
+
+  var file = object( File ).create( edit_inode ) ;
+  // duplicated
+  for( var i = 0; i < editview.value.length; i++ ) {
+    if( ! file.inode.is_ILARG( ) ) {
+      if( ! file.inode.addr( parseInt( i / 512 ) ) ) {
+        file.inode.set_addr( parseInt( i / 512 ), Kernel.alloc( ) ) ;
+      }
+    }
+    file.set_byte_data( i, editview.value.charCodeAt( i ) ) ;
+  }
+  edit_inode.set_size( editview.value.length ) ;
+
+  editview.value = '' ;
+  edit_inode = null ;
+  loaded = true ; // var name must be ready or something.
+}
+
+function reload( ) {
+  var file = object( File ).create( edit_inode ) ;
+  editview.value = file.string( ) ;
+}
+
+document.onkeydown = function( e ) {
+
+  if( ! loaded )
+    return ;
+
+  while( traceview.firstChild )
+    traceview.removeChild( traceview.firstChild ) ;
+
+  if( e.keyCode == 0xd ) {
+    terminal.value += String.fromCharCode( e.keyCode ) ;
+
+    var s = terminal_line.toLowerCase( ) ;
+    var array = s.split( /\s+/ ) ;
+    var name = array[ 0 ] ;
+
+    if( name == 'cd' || name == 'chdir' ) {
+      if( array.length > 2 ) {
+        terminal.value += 'cd requires an argument.\n' ;
+      } else {
+        var dir_name = array.length == 1 ? '/' : array[ 1 ] ;
+        var inode = Kernel.namei( dir_name ) ;
+        if( ! inode ) {
+          terminal.value += 'not found ' + dir_name + '\n' ;
+        } else {
+          current_dir_i_number = inode.i_number ;
+        }
+      }
+    } else if( name == 'filsys' ) {
+      terminal.value += superblock.string( ) ;
+    } else if( name == 'dis' ) {
+      if( array.length != 2 ) {
+        terminal.value += 'dis requires an argument.\n' ;
+      } else {
+        var inode = Kernel.namei( array[ 1 ] ) ;
+        if( ! inode ) {
+          terminal.value += 'not found ' + array[ 1 ] + '\n' ;
+        } else {
+          var file = object( File ).create( inode ) ;
+          if( file.isExe( ) ) {
+            var exe = object( Exe ).create( file ) ;
+            terminal.value += exe.disassemble( ) ;
+          } else {
+            terminal.value += array[ 1 ] + ' is not an executable file.\n' ;
+          }
+        }
+      }
+    } else if( name == 'inode' ) {
+      if( array.length != 2 ) {
+        terminal.value += 'inode requires an argument.\n' ;
+      } else {
+        var inode = Kernel.namei( array[ 1 ] ) ;
+        if( ! inode ) {
+          terminal.value += 'not found ' + array[ 1 ] + '\n' ;
+        } else {
+          terminal.value += inode.string( ) ;
+        }
+      }
+    } else if( name == 'dp' ) {
+      if( array.length != 2 ) {
+        terminal.value += 'dp requires an argument.\n' ;
+      } else {
+        var inode = Kernel.namei( array[ 1 ] ) ;
+        if( ! inode ) {
+          terminal.value += 'not found ' + array[ 1 ] + '\n' ;
+        } else {
+          var file = object( File ).create( inode ) ;
+          terminal.value += file.binary_data( ) ;
+        }
+      }
+    } else if( name == 'edit' ) {
+      if( array.length != 2 ) {
+        terminal.value += 'edit requires an argument.\n' ;
+      } else {
+        var inode = Kernel.namei( array[ 1 ] ) ;
+        if( ! inode ) {
+          inode = Kernel.maknod( ) ;
+        }
+        edit_inode = inode ;
+        var file = object( File ).create( edit_inode ) ;
+        editview.style.display = '' ;
+        savebutton.style.display = '' ;
+        reloadbutton.style.display = '' ;
+        editview.value = file.string( ) ;
+        loaded = false ; // var name must be ready or something.
+      }
+    } else {
+      argview.value = '' ;
+      for( var i = 1; i < array.length; i++ ) {
+        if( i > 1 )
+          argview.value += ' ' ;
+        argview.value += array[ i ] ;
+      }
+
+      var inode = Kernel.namei( '/bin/' + name ) ;
+      if( ! inode )
+        inode = Kernel.namei( '/usr/bin/' + name ) ;
+      if( ! inode )
+        inode = Kernel.namei( name ) ;
+
+      if( inode ) {
+        var file = object( File ).create( inode ) ;
+
+        if( ! file.isExe( ) )
+          return ;
+
+        current_name = name ;
+        runview.value = '' ;
+        trace = object( Trace ).create( ) ;
+        var exe = object( Exe ).create( file ) ;
+        var proc = object( Proc ).create( ) ;
+        proc.load( exe ) ;
+        try {
+          proc.run( ) ;
+        } catch( e ) {
+          console.log( e ) ;
+        }
+        var link = document.createElement( 'a' ) ;
+        link.href = trace.getLink( ) ;
+        link.innerHTML = 'trace data' ;
+        traceview.appendChild( link ) ;
+      } else {
+        terminal.value += 'not found.\n' ;
+      }
+    }
+    terminal.value += '> ' ;
+    terminal_line = '';
+    terminal.scrollTop = terminal.scrollHeight ;
+  } else if( e.keyCode == 8 ) {
+    if( terminal_line ) {
+      terminal_line = terminal_line.slice( 0, terminal_line.length - 1 ) ;
+      terminal.value = terminal.value.slice( 0, terminal.value.length - 1 ) ;
+    }
+  } else {
+//    terminal.value += e.keyCode ;
+    if( e.keyCode == 190 ) {
+      terminal.value += String.fromCharCode( 0x2e ) ;
+      terminal_line += String.fromCharCode( 0x2e ) ;
+    } else if( e.keyCode == 191 ) {
+      terminal.value += String.fromCharCode( 0x2f ) ;
+      terminal_line += String.fromCharCode( 0x2f ) ;
+    } else if( e.keyCode == 189 ) {
+      terminal.value += String.fromCharCode( 0x2d ) ;
+      terminal_line += String.fromCharCode( 0x2d ) ;
+    } else {
+      terminal.value += String.fromCharCode( e.keyCode ) ;
+      terminal_line += String.fromCharCode( e.keyCode ) ;
+    }
+  }
+  event.preventDefault( ) ;
+
+}
+
+function init( ) {
+
+  loaded = false ;
+
+  terminal       = document.getElementById( "terminal" ) ;
+  resultview     = document.getElementById( "resultview" ) ;
+  textview       = document.getElementById( "textview" ) ;
+  binaryview     = document.getElementById( "binaryview" ) ;
+  inodeview      = document.getElementById( "inodeview" ) ;
+  superblockview = document.getElementById( "superblockview" ) ;
+  runview        = document.getElementById( "runview" ) ;
+  argview        = document.getElementById( "argview" ) ;
+  traceview      = document.getElementById( "traceview" ) ;
+  runbutton      = document.getElementById( "runbutton" ) ;
+  editview       = document.getElementById( "editview" ) ;
+  savebutton     = document.getElementById( "savebutton" ) ;
+  reloadbutton   = document.getElementById( "reloadbutton" ) ;
+
+
+  resultview.style.display     = 'none' ;
+  superblockview.style.display = 'none' ;
+  inodeview.style.display      = 'none' ;
+  textview.style.display       = 'none' ;
+  binaryview.style.display     = 'none' ;
+  runview.style.display        = 'none' ;
+  argview.style.display        = 'none' ;
+//  traceview.style.display      = 'none' ;
+  runbutton.style.display      = 'none' ;
+  editview.style.display       = 'none' ;
+  savebutton.style.display     = 'none' ;
+  reloadbutton.style.display   = 'none' ;
+
+  terminal.focus( ) ;
+  terminal.value = 'drug an diskimage here.' ;
+
+}
+
+</script>
+</head>
+<body onLoad="init( )">
+<table>
+<td valign="top">
+<p>
+<div id="resultview"></div>
+</p>
+</td>
+<td valign="top">
+<p>
+<textarea id="terminal" cols="100" rows="20" readonly>
+</textarea>
+</p>
+<p>
+<textarea id="editview" cols="100" rows="20">
+</textarea>
+</p>
+<p>
+<button id="savebutton" onClick="save( )">save</button>
+<button id="reloadbutton" onClick="reload( )">reload</button>
+</p>
+<p>
+<textarea id="superblockview" cols="100" rows="20">
+</textarea>
+</p>
+<p>
+<textarea id="inodeview" cols="100" rows="20">
+</textarea>
+</p>
+<p>
+<textarea id="textview" cols="100" rows="30">
+</textarea>
+</p>
+<p>
+<textarea id="binaryview" cols="100" rows="30">
+</textarea>
+</p>
+<p>
+<button onClick="run( )" id='runbutton'>run</button>
+<input type="text" id="argview" />
+<span id="traceview"></span>
+<br />
+<textarea id="runview" cols="100" rows="20">
+</textarea>
+</p>
+</td>
+</tr>
+</table>
+</body>
+</html> 

@@ -277,7 +277,7 @@ var Proc = {
           break ;
         }
       }
-      trace.append( current_name + ' : ' + pdp11.string( this ) + result.op + ' ' ) ;
+      trace.append( pdp11.string( this ) + result.op + ' ' ) ;
       result.run( pdp11, this, code, ahead ) ;
       pdp11.nextStep( ) ;
 

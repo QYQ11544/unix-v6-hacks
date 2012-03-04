@@ -113,6 +113,8 @@ var SystemCall = {
              }
            }
            runview.value += result ;
+           if( terminal )
+             terminal.value += result ;
            var buffer  = ' ('
                        + 'strings:\'' + result.replace( /\n/g, "\\n" ) + '\'(' + result_hex + ')'
                        + ' buffer:' + sprintf( 16, opr1_org, 5 )

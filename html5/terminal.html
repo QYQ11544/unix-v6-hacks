@@ -178,7 +178,7 @@ function run( ) {
   try {
     proc.run( ) ;
   } catch( e ) {
-    console.log( e ) ;
+    console.log( trace( e ) ) ;
   }
   var link = document.createElement( 'a' ) ;
   link.href = trace.getLink( ) ;
@@ -361,6 +361,8 @@ document.onkeydown = function( e ) {
       terminal_line = terminal_line.slice( 0, terminal_line.length - 1 ) ;
       terminal.value = terminal.value.slice( 0, terminal.value.length - 1 ) ;
     }
+  } else if( e.keyCode == 16 ) {
+
   } else {
 //    terminal.value += e.keyCode ;
     if( e.keyCode == 190 ) {

@@ -225,7 +225,7 @@ document.onkeydown = function( e ) {
   if( e.keyCode == 0xd ) {
     terminal.value += String.fromCharCode( e.keyCode ) ;
 
-    var s = terminal_line.toLowerCase( ) ;
+    var s = terminal_line ;
     var array = s.split( /\s+/ ) ;
     var name = array[ 0 ] ;
 
@@ -297,6 +297,7 @@ document.onkeydown = function( e ) {
         savebutton.style.display = '' ;
         reloadbutton.style.display = '' ;
         editview.value = file.string( ) ;
+        editview.focus( ) ;
         loaded = false ; // var name must be ready or something.
       }
     } else {
@@ -358,8 +359,18 @@ document.onkeydown = function( e ) {
       terminal.value += String.fromCharCode( 0x2d ) ;
       terminal_line += String.fromCharCode( 0x2d ) ;
     } else {
-      terminal.value += String.fromCharCode( e.keyCode ) ;
-      terminal_line += String.fromCharCode( e.keyCode ) ;
+      if( e.keyCode >= 0x41 && e.keyCode <= 0x5a ) {
+        if( e.shiftKey ) {
+          terminal.value += String.fromCharCode( e.keyCode ) ;
+          terminal_line += String.fromCharCode( e.keyCode ) ;
+        } else {
+          terminal.value += String.fromCharCode( e.keyCode + 0x20 ) ;
+          terminal_line += String.fromCharCode( e.keyCode + 0x20 ) ;
+        }
+      } else {
+        terminal.value += String.fromCharCode( e.keyCode ) ;
+        terminal_line += String.fromCharCode( e.keyCode ) ;
+      }
     }
   }
   event.preventDefault( ) ;
@@ -399,7 +410,7 @@ function init( ) {
   reloadbutton.style.display   = 'none' ;
 
   terminal.focus( ) ;
-  terminal.value = 'drug an diskimage here.' ;
+  terminal.value = 'drag and drop an diskimage here.' ;
 
 }
 

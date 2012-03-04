@@ -283,6 +283,20 @@ document.onkeydown = function( e ) {
           terminal.value += file.binary_data( ) ;
         }
       }
+    } else if( name == 'text' ) {
+      if( array.length != 2 ) {
+        terminal.value += 'text requires an argument.\n' ;
+      } else {
+        var inode = Kernel.namei( array[ 1 ] ) ;
+        if( ! inode ) {
+          terminal.value += 'not found ' + array[ 1 ] + '\n' ;
+        } else {
+          var e = ( inode.is_IFDIR( ) && ! inode.is_IFCHR( ) )
+                  ? object( Directory ).create( inode )
+                  : object( File ).create( inode ) ;
+          terminal.value += e.string( ) ;
+        }
+      }
     } else if( name == 'edit' ) {
       if( array.length != 2 ) {
         terminal.value += 'edit requires an argument.\n' ;

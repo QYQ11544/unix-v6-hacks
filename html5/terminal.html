@@ -340,11 +340,13 @@ document.onkeydown = function( e ) {
         var exe = object( Exe ).create( file ) ;
         var proc = object( Proc ).create( ) ;
         proc.load( exe ) ;
+        var backup_i_number = current_dir_i_number ;
         try {
           proc.run( ) ;
         } catch( e ) {
           console.log( e ) ;
         }
+        current_dir_i_number = backup_i_number ;
         var link = document.createElement( 'a' ) ;
         link.href = trace.getLink( ) ;
         link.innerHTML = 'trace data' ;
